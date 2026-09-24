@@ -84,10 +84,3 @@ jobs:
           bundle: com.properlypurple.braus.flatpak
           manifest-path: com.properlypurple.braus.ci.json
           cache-key: flatpak-builder-${{ github.sha }}
-
-      - name: Upload Flatpak bundle artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: braus-flatpak-bundle
-          path: com.properlypurple.braus.flatpak
-          if-no-files-found: error
