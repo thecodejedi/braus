@@ -24,10 +24,12 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Adw, Gio, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 from braus.browser_mappings import BrowserMappings  # noqa: E402
 from braus.window import BrausWindow  # noqa: E402
+
+VERSION = None
 
 
 class Application(Adw.Application):
@@ -52,6 +54,20 @@ class Application(Adw.Application):
         self.url = None
         self.settings = Gio.Settings.new("com.properlypurple.braus")
         self.browser_mappings = BrowserMappings(self.settings)
+        self.add_main_option(
+            'version',
+            0,
+            GLib.OptionFlags.NONE,
+            GLib.OptionArg.NONE,
+            _("Print version and exit"),
+            None,
+        )
+
+    def do_handle_local_options(self, options):
+        if options.contains('version'):
+            print(VERSION or "unknown")
+            return 0
+        return Adw.Application.do_handle_local_options(self, options)
 
     def do_command_line(self, command_line):
         args = command_line.get_arguments()[1:]
@@ -63,7 +79,7 @@ class Application(Adw.Application):
                 self.browser_mappings.clear()
                 return 0
         except IndexError:
-            print(_("Missing arguments"))
+            print(_("Missing arguments"), file=sys.stderr)
             return 1
         self.url = args[0] if args else None
         self.activate()
@@ -90,11 +106,13 @@ class Application(Adw.Application):
             website="https://braus.properlypurple.com",
             developers=["Kavya Gokul"],
             license_type=Gtk.License.GPL_3_0,
-            icon_name='applications-internet',
+            icon_name='com.properlypurple.braus',
         )
         about_dialog.present()
 
 
 def main(version):
+    global VERSION
+    VERSION = version
     app = Application()
     return app.run(sys.argv)

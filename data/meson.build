@@ -30,8 +30,15 @@ if appstreamcli.found()
   )
 endif
 
-install_data('com.properlypurple.braus.gschema.xml',
+install_data(
+  'com.properlypurple.braus.gschema.xml',
   install_dir: get_option('datadir') / 'glib-2.0/schemas',
+)
+
+install_data(
+  'icons/hicolor/scalable/apps/com.properlypurple.braus.svg',
+  install_dir: get_option('datadir') / 'icons/hicolor/scalable/apps',
+  rename: 'com.properlypurple.braus.svg',
 )
 
 compile_schemas = find_program('glib-compile-schemas', required: false)

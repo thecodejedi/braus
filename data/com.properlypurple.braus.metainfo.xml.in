@@ -3,8 +3,6 @@
   <id>com.properlypurple.braus</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <developer_name translatable="no">Kavya Gokul</developer_name>
-  <update_contact>git@properlypurple.com</update_contact>
   <name>Braus</name>
   <summary>Select a browser every time you click a link</summary>
   <description>
@@ -13,9 +11,17 @@
     <p>Braus is a GNU/Linux alternative to apps such as Choosy, Browserchooser and Browserosaurus.</p>
   </description>
   <launchable type="desktop-id">com.properlypurple.braus.desktop</launchable>
+  <icon type="stock" height="128" width="128">com.properlypurple.braus</icon>
   <url type="homepage">https://braus.properlypurple.com</url>
   <url type="bugtracker">https://github.com/thecodejedi/braus/issues</url>
+  <url type="vcs-browser">https://github.com/thecodejedi/braus</url>
+  <categories>
+    <category>Network</category>
+  </categories>
   <content_rating type="oars-1.1"/>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
   <releases>
     <release version="0.3.0" date="2025-09-24">
       <description translatable="no">
@@ -23,6 +29,7 @@
           <li>Port to GTK4 and libadwaita</li>
           <li>Update Flatpak runtime to GNOME 48</li>
           <li>Fix crash when pressing non-numeric keys</li>
+          <li>Responsive browser grid, Escape to dismiss, app icon</li>
         </ul>
       </description>
     </release>
@@ -32,4 +39,8 @@
       </description>
     </release>
   </releases>
+  <developer id="com.properlypurple">
+    <name>Kavya Gokul</name>
+  </developer>
+  <update_contact>git@properlypurple.com</update_contact>
 </component>
