@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gettext \
+            desktop-file-utils \
+            libglib2.0-dev-bin \
+            gir1.2-gtk-4.0 \
+            gir1.2-adw-1 \
+            libadwaita-1-0 \
+            python3-gi \
+            python3-gi-cairo \
+            appstream
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: pip install meson ninja ruff
+
+      - name: Lint
+        run: ruff check src/
+
+      - name: Configure
+        run: meson setup build
+
+      - name: Compile
+        run: ninja -C build
+
+      - name: Test
+        run: meson test -C build --print-errorlogs

@@ -1,8 +1,12 @@
 [Desktop Entry]
-Name=braus
+Name=Braus
+GenericName=Browser chooser
 Exec=braus %U
 Terminal=false
 Type=Application
+Icon=applications-internet
 Categories=GTK;Network;
 StartupNotify=true
 MimeType=text/html;text/xml;application/xhtml_xml;x-scheme-handler/http;x-scheme-handler/https;
+Keywords=browser;chooser;link;url;
+X-Purism-FormFactor=Workstation;Mobile;

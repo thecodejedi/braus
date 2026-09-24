@@ -8,16 +8,26 @@ GNU/Linux alternative to apps such as Choosy/Browserchooser/Browserosaurus.
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/braus)
 
 ## Build
+
+Requires Python 3, GTK 4, libadwaita 1.4+, Meson 0.62+ and gettext.
+
 ```
-$ git clone <repo>
+$ git clone https://github.com/thecodejedi/braus
 $ cd braus
-$ meson build --prefix=$(pwd)/build
-$ ninja -C build install
+$ meson setup build --prefix=$(pwd)/build
+$ meson compile -C build
+$ meson install -C build
 ```
 
 ### Local launch
 ```
-$ GSETTINGS_SCHEMA_DIR=build/share/glib-2.0/schemas ./build/bin/braus 
+$ GSETTINGS_SCHEMA_DIR=build/share/glib-2.0/schemas ./build/bin/braus
+```
+
+### Flatpak
+```
+$ flatpak-builder --force-clean --user --install-deps-from=flathub \
+    build-dir com.properlypurple.braus.json
 ```
 
 ## Install
@@ -30,10 +40,10 @@ $ yay -S braus
 
 ### From sources
 ```
-$ git clone <repo>
+$ git clone https://github.com/thecodejedi/braus
 $ cd braus
-$ meson build --prefix=/usr
-$ ninja -C build install
+$ meson setup build --prefix=/usr
+$ sudo meson install -C build
 ```
 
 When you run braus for the first time, it will ask you whether you want to set it as your default browser. Ideally you should make it default to actually get the benefit of an app like this.

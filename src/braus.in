@@ -1,5 +1,4 @@
 #!@PYTHON@
-
 # braus.in
 #
 # Copyright 2020 Kavya Gokul
@@ -18,29 +17,31 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import signal
-import gettext
+import sys
+
+VERSION = "@VERSION@"
+pkgdatadir = "@pkgdatadir@"
+localedir = "@localedir@"
 
 if "SNAP" in os.environ:
-	SNAP = os.environ["SNAP"]
-	VERSION = "@VERSION@"
-	pkgdatadir = "usr/share/braus"
-	localedir = "usr/share/locale"
-	sys.path.insert(1, f"{SNAP}/{pkgdatadir}")
-else:
-	VERSION = "@VERSION@"
-	pkgdatadir = "@pkgdatadir@"
-	localedir = "@localedir@"
-	sys.path.insert(1, pkgdatadir)
+    pkgdatadir = os.path.join(os.environ["SNAP"], "usr/share/braus")
+    localedir = os.path.join(os.environ["SNAP"], "usr/share/locale")
+
+sys.path.insert(1, pkgdatadir)
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+import gettext  # noqa: E402
+
 gettext.install('braus', localedir)
 
 if __name__ == '__main__':
     import gi
-    gi.require_version('Gtk', '3.0')
-    gi.require_version('Gdk', '3.0')
+
+    gi.require_version('Gtk', '4.0')
+    gi.require_version('Adw', '1')
 
     from braus import main
+
     sys.exit(main.main(VERSION))

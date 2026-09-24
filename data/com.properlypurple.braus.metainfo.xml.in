@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.properlypurple.braus</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer_name translatable="no">Kavya Gokul</developer_name>
+  <update_contact>git@properlypurple.com</update_contact>
+  <name>Braus</name>
+  <summary>Select a browser every time you click a link</summary>
+  <description>
+    <p>Braus is a small application to select a browser every time you click a link anywhere.</p>
+    <p>This is especially useful if you have multiple browsers or profiles, and you want to be able to open certain links in certain browsers. Very useful for web developers, but also for a lot of other people.</p>
+    <p>Braus is a GNU/Linux alternative to apps such as Choosy, Browserchooser and Browserosaurus.</p>
+  </description>
+  <launchable type="desktop-id">com.properlypurple.braus.desktop</launchable>
+  <url type="homepage">https://braus.properlypurple.com</url>
+  <url type="bugtracker">https://github.com/thecodejedi/braus/issues</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.3.0" date="2025-09-24">
+      <description translatable="no">
+        <ul>
+          <li>Port to GTK4 and libadwaita</li>
+          <li>Update Flatpak runtime to GNOME 48</li>
+          <li>Fix crash when pressing non-numeric keys</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.2.0" date="2020-05-01">
+      <description translatable="no">
+        <p>Initial stable release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

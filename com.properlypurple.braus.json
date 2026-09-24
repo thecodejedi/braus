@@ -1,7 +1,7 @@
 {
     "app-id" : "com.properlypurple.braus",
     "runtime" : "org.gnome.Platform",
-    "runtime-version" : "3.38",
+    "runtime-version" : "48",
     "sdk" : "org.gnome.Sdk",
     "command" : "braus",
     "finish-args" : [
@@ -9,9 +9,11 @@
         "--share=ipc",
         "--socket=fallback-x11",
         "--socket=wayland",
-        "--filesystem=xdg-data/applications",
+        "--device=dri",
+        "--filesystem=xdg-data/applications:ro",
         "--filesystem=home:ro",
-        "--filesystem=/var/run/host/usr:ro"
+        "--filesystem=/var/run/host/usr:ro",
+        "--filesystem=/usr/share/applications:ro"
     ],
     "cleanup" : [
         "/include",
@@ -21,6 +23,7 @@
         "/share/gtk-doc",
         "/share/man",
         "/share/pkgconfig",
+        "/share/installed-tests",
         "*.la",
         "*.a"
     ],
@@ -32,7 +35,8 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://github.com/properlypurple/braus"
+                    "url" : "https://github.com/thecodejedi/braus.git",
+                    "branch" : "main"
                 }
             ]
         }
