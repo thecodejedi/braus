@@ -51,8 +51,43 @@ jobs:
       - name: Upload release tarball artifact
         uses: actions/upload-artifact@v6
         with:
-          name: braus-${{ github.event.repository.name }}-release
+          name: braus-source-release
           path: |
             build/meson-dist/*.tar.xz
             build/meson-dist/*.sha256sum
+          if-no-files-found: error
+
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Point manifest at this checkout
+        run: |
+          python3 - <<'EOF'
+          import json
+          with open('com.properlypurple.braus.json') as f:
+              manifest = json.load(f)
+          manifest['modules'][0]['sources'] = [
+              {'type': 'dir', 'path': '.', 'skip': ['.git', 'build']}
+          ]
+          with open('com.properlypurple.braus.ci.json', 'w') as f:
+              json.dump(manifest, f, indent=4)
+          EOF
+
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: com.properlypurple.braus.flatpak
+          manifest-path: com.properlypurple.braus.ci.json
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Upload Flatpak bundle artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: braus-flatpak-bundle
+          path: com.properlypurple.braus.flatpak
           if-no-files-found: error
