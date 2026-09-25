@@ -3,4 +3,4 @@ builddir
 .vscode
 __pycache__
 *.snap
-prime
+prime.flatpak-builder/

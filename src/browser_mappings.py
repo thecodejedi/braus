@@ -1,41 +1,26 @@
-from gi.repository import Gtk, Gio, GLib, Pango, Gdk
+from gi.repository import Gio, GLib
 
-class BrowserMappings():
-    def __init__(self, settings):
+
+class BrowserMappings:
+    def __init__(self, settings: Gio.Settings):
         self.settings = settings
 
-    def do_setbrowser(self, url, browser):
-        mappingsArr = self.do_loadUrlMappings()
-        mappingsArr.append(url + " " + browser)
+    def set_browser(self, url: str, browser: str) -> None:
+        mappings = self.load()
+        mappings.append([url, browser])
+        self.settings.set_value("url-mapping", GLib.Variant('a(ss)', mappings))
 
-        tmpVariant = GLib.Variant('aas', mappingsArr)
-        self.settings.set_value("url-mapping", tmpVariant)
+    def clear(self) -> None:
+        self.settings.set_value("url-mapping", GLib.Variant('a(ss)', []))
 
-    def do_clearbrowsermappings(self):
-        mappingsArr=[]
-        tmpVariant = GLib.Variant('aas', mappingsArr)
-        self.settings.set_value("url-mapping", tmpVariant)
-    
-    def do_loadUrlMappings(self):
-        urlMappings = self.settings.get_value("url-mapping")
-        mappingsArr = []
-        for mapping in urlMappings:
-            pathToMatch = "".join(mapping)
-            mappingsArr.append(pathToMatch)
+    def load(self) -> list[list[str]]:
+        return [list(mapping) for mapping in self.settings.get_value("url-mapping")]
 
-        return mappingsArr
-    
-    def do_determinebrowser(self, app, url, browsers):
-        mappingsArr = self.do_loadUrlMappings()
-
-        for mapping in mappingsArr:
-            matcher = mapping.split(" ")
-
-            if(not url.startswith(matcher[0])):
+    def determine_browser(self, url: str, browsers):
+        for prefix, browser_id in self.load():
+            if not url.startswith(prefix):
                 continue
-
             for browser in browsers:
-                if(browser.get_id() != matcher[1]):
-                    continue
-                return browser
-                        
+                if browser.get_id() == browser_id:
+                    return browser
+        return None

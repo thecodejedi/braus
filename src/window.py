@@ -15,308 +15,262 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
+from gettext import gettext as _
 
-from gi.repository import Gdk, Gio, GLib, Gtk, Pango
+import gi
+
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
+
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 
-class BrausWindow(Gtk.ApplicationWindow):
+class BrausWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'BrausWindow'
-    browsers = []
-    entry = Gtk.Entry()
 
-    def __init__(self, app):
-        super().__init__(title="Braus", application=app)
+    def __init__(self, app, url):
+        super().__init__(title=_("Braus"), application=app)
+        self.set_default_size(500, 220)
+        self.browsers = []
+        self.launching = False
+        self.banner = None
 
-        # Set it to open in center
-        self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-
-        # Set to not be resizable
-        self.set_resizable(False)
-
-        self.connect('key-release-event', self.keyboard_handle, app)
-
-        settings = Gtk.Settings.get_default()
-        settings.set_property('gtk-application-prefer-dark-theme', True)
-
-        # Putting some css in a string
-        css = b"""
-        * {
-        }
-        decoration {
-            border: 1px solid rgba(0,0,0,0.8);
-            box-shadow: none;
-            outline: none;
-        }
-        window.background.csd {
-            background: none;
-            background-color: rgba(20,20,20,0.95);
-            border: none;
-        }
-        #headerbar {
-            background: none;
-            background-color: rgba(20,20,20,0.95);
-            box-shadow: none;
-            border: none;
-            padding: 5px 10px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.5);
-        }
-        #headerbar entry {
-            background: rgba(0,0,0,0.4);
-            color: #ffffff;
-            font-size: 0.6em;
-            border-radius: 10px;
-            border: 1px solid rgba(0,0,0, 0.4);
-            outline: none;
-            margin:10px 0;
-        }
-        #headerbar entry:focus {
-            border: 1px solid rgba(255,255,255, 0.4);
-            outline: none;
-            box-shadow: none;
-        }
-
-        button decoration {
-            border-radius: initial;
-            border: initial;
-        }
-
-        #mainbox {
-            background: none;
-            padding: 10px;
-        }
-
-        #mainbox button {
-            background: none;
-            border: 1px solid rgba(255,255,255, 0.4);
-        }
-
-        #mainbox button:hover {
-            background-color: rgba(255,255,255,0.1);
-        }
-
-        #browser-btn {
-            padding: 18px 12px;
-            font-size: 0.8rem;
-        }
-
-        #hotkey-btn {
-            margin-top: 10px;
-            font-size: 0.8rem;
-        }
-
-        #browsericon {
-            margin-bottom: 6px;
-        }
-        """
-        # Applying the custom css to the app
-        style_provider = Gtk.CssProvider()
-        style_provider.load_from_data(css)
-
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            style_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        self.entry = Gtk.Entry()
+        self.entry.set_icon_from_icon_name(
+            Gtk.EntryIconPosition.PRIMARY, "system-search-symbolic"
         )
-
-
-        #Create headerbar and add to window as titlebar
-        hb = Gtk.HeaderBar()
-        hb.set_show_close_button(True)
-        hb.set_name("headerbar")
-        hb.props.title = ""
-        self.set_titlebar(hb)
-
-        Gtk.StyleContext.add_class(hb.get_style_context(), Gtk.STYLE_CLASS_FLAT)
-
-        # Create a entry, put the url argument in the entry, and add to headerbar
-        self.entry.set_icon_from_icon_name(Gtk.EntryIconPosition.PRIMARY, "system-search-symbolic")
-        try:
-            self.entry.set_text(sys.argv[1])
-        except IndexError:
-            print("No url provided")
-
+        self.entry.set_text(url or "")
         self.entry.set_width_chars(35)
-        hb.add(self.entry)
+        self.entry.set_hexpand(True)
+        self.entry.set_placeholder_text(_("URL to open"))
+        self.entry.set_tooltip_text(_("URL to open"))
+        self.entry.connect("activate", self.on_entry_activated, app)
+        self.entry.set_can_focus(False)
+        entry_click = Gtk.GestureClick()
+        entry_click.connect("pressed", self.on_entry_clicked)
+        self.entry.add_controller(entry_click)
 
-        # Create an options button
-        optionsbutton = Gtk.MenuButton.new()
-        try:
-            optionsbutton.add(Gtk.Image.new_from_icon_name('settings-symbolic', Gtk.IconSize.LARGE_TOOLBAR))
-        except:
-            optionsbutton.add(Gtk.Image.new_from_icon_name('preferences-system', Gtk.IconSize.LARGE_TOOLBAR))
-        hb.pack_end(optionsbutton)
+        header = Adw.HeaderBar()
+        header.set_title_widget(self.entry)
 
-        optionsmenu = Gtk.Menu.new()
-        optionsmenu.set_name("optionsmenu")
-        optionsbutton.set_popup(optionsmenu)
+        menu = Gio.Menu()
+        menu.append(_("About Braus"), "app.about")
+        section = Gio.Menu()
+        section.append(_("Never ask to be default"), "win.never-ask")
+        menu.append_section(None, section)
+        menu.append(_("Quit"), "app.quit")
+        options_button = Gtk.MenuButton()
+        options_button.set_icon_name("preferences-system-symbolic")
+        options_button.set_menu_model(menu)
+        options_button.set_tooltip_text(_("Main Menu"))
+        header.pack_end(options_button)
 
-        aboutmenuitem = Gtk.MenuItem.new()
-        aboutmenuitem.set_label("About")
-        aboutmenuitem.connect("activate", app.on_about)
-        optionsmenu.append(aboutmenuitem)
+        self.browser_grid = Gtk.FlowBox(
+            selection_mode=Gtk.SelectionMode.NONE,
+            max_children_per_line=5,
+            min_children_per_line=3,
+            column_spacing=12,
+            row_spacing=12,
+            homogeneous=True,
+        )
+        self.browser_grid.set_margin_top(12)
+        self.browser_grid.set_margin_bottom(12)
+        self.browser_grid.set_margin_start(12)
+        self.browser_grid.set_margin_end(12)
 
-        quitmenuitem = Gtk.MenuItem.new()
-        quitmenuitem.set_label("Quit")
-        quitmenuitem.connect("activate", self.quitApp, app)
-        optionsmenu.append(quitmenuitem)
+        scrolled = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+        )
+        scrolled.set_child(self.browser_grid)
+        scrolled.set_min_content_height(120)
 
-        optionsmenu.show_all()
+        self.toast_overlay = Adw.ToastOverlay()
+        self.toast_overlay.set_child(scrolled)
 
-        # outerbox
-        outerbox = Gtk.Box()
-        outerbox.set_orientation(Gtk.Orientation.VERTICAL)
+        outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        outer_box.append(header)
+        outer_box.append(self.toast_overlay)
 
-        self.add(outerbox)
+        self.set_content(outer_box)
 
+        key_controller = Gtk.EventControllerKey()
+        key_controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        key_controller.connect("key-pressed", self.on_key_pressed, app)
+        self.add_controller(key_controller)
 
-        # create a horizontal box to hold browser buttons
-        hbox = Gtk.Box()
-        hbox.set_name("mainbox")
-        hbox.set_orientation(Gtk.Orientation.HORIZONTAL)
-        hbox.set_spacing(10)
-        hbox.set_homogeneous(True)
+        self.setup_actions(app)
+        self.populate_browsers(app)
 
-        outerbox.add(hbox)
+    def setup_actions(self, app):
+        set_default = Gio.SimpleAction.new("set-default", None)
+        set_default.connect("activate", self.on_set_default, app)
+        self.add_action(set_default)
+        never_ask = Gio.SimpleAction.new("never-ask", None)
+        never_ask.connect("activate", self.on_never_ask, app)
+        self.add_action(never_ask)
 
-        # Create an infobar to help the user set Braus as default
-        infobar = Gtk.InfoBar()
-        infobar.set_message_type(Gtk.MessageType.QUESTION)
-        infobar.set_show_close_button(True)
-        infobar.connect("response", self.on_infobar_response, app)
+    def populate_browsers(self, app):
+        appinfo_id = app.get_application_id() + '.desktop'
 
-        infolabel = Gtk.Label("Set Braus as your default browser")
-        content = infobar.get_content_area()
-        content.add(infolabel)
+        default_browser = Gio.AppInfo.get_default_for_type(
+            app.content_types[1], True
+        )
+        if (
+            app.settings.get_boolean("ask-default")
+            and (
+                default_browser is None
+                or default_browser.get_id() != appinfo_id
+            )
+        ):
+            self.show_banner()
 
-        infobuttonnever = Gtk.Button.new_with_label(_("Never ask again"))
-        Gtk.StyleContext.add_class(infobuttonnever.get_style_context(), Gtk.STYLE_CLASS_FLAT)
-        
-        infobar.add_action_widget(infobuttonnever, Gtk.ResponseType.REJECT)
-        infobar.add_button (_("Set as Default"), Gtk.ResponseType.ACCEPT)
-        
-        
-
-        if app.settings.get_boolean("ask-default") == True and Gio.AppInfo.get_default_for_type(app.content_types[1], True).get_id() != Gio.Application.get_application_id(app) + '.desktop' :
-            outerbox.add(infobar)
-        
-
-        # Get all apps which are registered as browsers
         browsers = Gio.AppInfo.get_all_for_type(app.content_types[1])
+        self.browsers = [
+            b for b in browsers if app.get_application_id() not in b.get_id()
+        ]
 
-        # The Gio.AppInfo.launch_uris method takes a list object, so let's make a list and put our url in there
-        uris = []
-        uris.append(self.entry.get_text())
+        url = self.entry.get_text()
+        mapped = app.browser_mappings.determine_browser(url, browsers)
+        if mapped is not None:
+            mapped.launch_uris([url])
+            self.close()
+            return
 
-        #create an empty dict to use later
-        appslist = {}
+        if not self.browsers:
+            empty = Adw.StatusPage(
+                title=_("No browsers found"),
+                description=_(
+                    "Install a browser, or check that its desktop file "
+                    "registers the x-scheme-handler/https MIME type."
+                ),
+                icon_name="preferences-web-browser-symbolic",
+            )
+            self.toast_overlay.set_child(empty)
+            return
 
-        self.do_checkUrlMappings(app, self.entry.get_text(), browsers)
-
-        # Remove Braus from the list of browsers
-        self.browsers = list(filter(lambda b: Gio.Application.get_application_id(app) not in b.get_id(), browsers))
-        
-        # Loop over the apps in the list of browsers
         for index, browser in enumerate(self.browsers):
-            #Get the icon and label, and put them in a button
-            try:
-                icon = Gtk.Image.new_from_gicon(browser.get_icon(), Gtk.IconSize.DIALOG)
-            except:
-                icon = Gtk.Image.new_from_icon_name('applications-internet', Gtk.IconSize.DIALOG)
+            self.browser_grid.append(self.create_browser_card(app, index, browser))
 
-            icon.set_name("browsericon")
-            label= Gtk.Label.new(browser.get_display_name())
-            label.set_max_width_chars(10)
-            label.set_width_chars(10)
-            label.set_line_wrap(True)
-            label.set_ellipsize(Pango.EllipsizeMode.END)
-            label.set_justify(Gtk.Justification.LEFT)
+    def show_banner(self):
+        self.banner = Adw.Banner(
+            title=_("Set Braus as your default browser")
+        )
+        self.banner.set_button_label(_("Set as Default"))
+        self.banner.set_action_name("win.set-default")
+        self.get_content().prepend(self.banner)
 
-            # Every button has a vertical Gtk.Box inside
-            browserBtn = Gtk.Button()
-            browserBtnBox = Gtk.Box()
-            browserBtnBox.set_name('browser-btn')
-            browserBtnBox.set_orientation(Gtk.Orientation.VERTICAL)
-            browserBtnBox.set_spacing(0)
-            browserBtnBox.pack_start(icon,True, True, 0)
-            browserBtnBox.pack_start(label,True, True, 0)
+    def remove_banner(self):
+        if self.banner is not None:
+            self.banner.unparent()
+            self.banner = None
 
-            browserBtn.add(browserBtnBox)
-            #Connect the click signal, passing on all relevant data(browser and url)
-            browserBtn.connect("clicked", self.browser_click_handle, index, app)
+    def create_browser_card(self, app, index, browser):
+        gicon = browser.get_icon()
+        if gicon is not None:
+            icon = Gtk.Image.new_from_gicon(gicon)
+        else:
+            icon = Gtk.Image.new_from_icon_name('applications-internet')
+        icon.set_pixel_size(48)
+        icon.set_valign(Gtk.Align.START)
 
-            # Browser entry box
-            browserEntryBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            browserEntryBox.pack_start(browserBtn, True, True, 0)
+        label = Gtk.Label.new(browser.get_display_name())
+        label.set_max_width_chars(12)
+        label.set_wrap(True)
+        label.set_ellipsize(Pango.EllipsizeMode.END)
+        label.set_justify(Gtk.Justification.CENTER)
 
-            # Hotkey recorder/indicator
-            if index < 10:
-                hotkeyBtn = Gtk.Label(label=str(index + 1))
-                hotkeyBtn.set_name('hotkey-btn')
-                hotkeyBtn.set_hexpand(False)
-                hotkeyBtn.set_halign(Gtk.Align.CENTER)
-                browserEntryBox.pack_end(hotkeyBtn, True, True, 0)
+        button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        button_box.set_margin_top(6)
+        button_box.set_margin_bottom(6)
+        button_box.set_margin_start(8)
+        button_box.set_margin_end(8)
+        button_box.append(icon)
+        button_box.append(label)
 
-            # Add our button to the horizontal box we made earlier
-            hbox.pack_start(browserEntryBox, True, True, 0)
+        button = Gtk.Button()
+        button.set_child(button_box)
+        button.add_css_class("flat")
+        button.set_tooltip_text(
+            _("Open with {}").format(browser.get_display_name())
+        )
+        button.connect("clicked", self.on_browser_clicked, index, app)
 
-    def do_checkUrlMappings(self, app, url, browsers):
-        browser = app.browser_mappings.do_determinebrowser(app, url, browsers)
-        if(browser):
-            uris = []
-            uris.append(url)
-            browser.launch_uris(uris)
-            self.quitApp(self,app)
-                        
-    def keyboard_handle(self, widget, event, app):
-        index = int(Gdk.keyval_name(event.keyval)) - 1
-        self.launch_browser(index, app)
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        card.append(button)
+        if index < 10:
+            hotkey_name = str((index + 1) % 10)
+            hotkey_label = Gtk.Label(label=hotkey_name)
+            hotkey_label.add_css_class("dim-label")
+            hotkey_label.set_valign(Gtk.Align.END)
+            card.append(hotkey_label)
 
-    def do_checkUrlMappings(self, app, url, browsers):
-        browser = app.browser_mappings.do_determinebrowser(app, url, browsers)
-        if(browser):
-            uris = []
-            uris.append(url)
-            browser.launch_uris(uris)
-            self.quitApp(self,app)
-                        
-    # Function to actually launch the browser
-    def browser_click_handle(self, target, index, app):
+        card_widget = Gtk.FlowBoxChild()
+        card_widget.set_child(card)
+        return card_widget
+
+    def on_entry_clicked(self, gesture, n_press, x, y):
+        self.entry.set_can_focus(True)
+        self.entry.grab_focus()
+
+    def on_key_pressed(self, controller, keyval, keycode, state, app):
+        if keyval == Gdk.KEY_Escape:
+            self.close()
+            return True
+        if self.launching:
+            return False
+        entry_focus = self.get_focus_child() is self.entry
+        entry_editing = self.entry.get_state_flags() & Gtk.StateFlags.FOCUS_WITHIN
+        if entry_focus or entry_editing:
+            return False
+        if Gdk.KEY_KP_0 <= keyval <= Gdk.KEY_KP_9:
+            digit = keyval - Gdk.KEY_KP_0
+        elif Gdk.KEY_0 <= keyval <= Gdk.KEY_9:
+            digit = keyval - Gdk.KEY_0
+        else:
+            return False
+        index = (digit - 1) % 10
+        if 0 <= index < len(self.browsers):
+            self.launch_browser(index, app)
+            return True
+        return False
+
+    def on_entry_activated(self, entry, app):
+        if self.browsers:
+            self.launch_browser(0, app)
+
+    def on_browser_clicked(self, button, index, app):
         self.launch_browser(index, app)
 
     def launch_browser(self, index, app):
-        # The Gio.AppInfo.launch_uris method takes a list object, so let's make a list and put our url in there
-        uris = [self.entry.get_text()]
+        if self.launching:
+            return
+        self.launching = True
         browser = self.browsers[index]
-        browser.launch_uris(uris)
-        print("Opening " + browser.get_display_name())
-        self.quitApp(self, app)
+        browser.launch_uris([self.entry.get_text()])
+        toast = Adw.Toast(
+            title=_("Opening {}…").format(browser.get_display_name())
+        )
+        self.toast_overlay.add_toast(toast)
+        GLib.timeout_add(500, self.close)
 
-    # Quit app action
-    def quitApp(self, *args):
-        app = args[1]
-        print("Bye…")
-        app.quit()
+    def on_set_default(self, action, param, app):
+        appinfo = Gio.DesktopAppInfo.new(
+            app.get_application_id() + '.desktop'
+        )
+        if appinfo is None:
+            return
+        try:
+            for content_type in app.content_types:
+                appinfo.set_as_default_for_type(content_type)
+        except GLib.Error:
+            print("Could not set Braus as default browser")
+        self.remove_banner()
+        toast = Adw.Toast(title=_("Braus is now your default browser"))
+        self.toast_overlay.add_toast(toast)
 
-    def on_about(self, action, param):
-        about_dialog = Gtk.AboutDialog(transient_for=self, modal=True)
-        about_dialog.present()
-
-    def on_infobar_response(self, infobar, response_id, app):
-        infobar.hide()
-        appinfo = Gio.DesktopAppInfo.new(Gio.Application.get_application_id(app) + '.desktop')
-
-        if response_id == Gtk.ResponseType.ACCEPT:
-            #set as default
-            try:
-                #loop through content types, and set Braus as default for those
-                for content_type in app.content_types:
-                    appinfo.set_as_default_for_type(content_type)
-
-            except GLib.Error:
-                print("error")
-        
-        elif response_id == Gtk.ResponseType.REJECT:
-            #don't ask again
-            app.settings.set_boolean("ask-default", False)
-    
+    def on_never_ask(self, action, param, app):
+        app.settings.set_boolean("ask-default", False)
+        self.remove_banner()
+        toast = Adw.Toast(title=_("Okay, we won't ask again"))
+        self.toast_overlay.add_toast(toast)

@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gettext \
+            desktop-file-utils \
+            libglib2.0-dev-bin \
+            gir1.2-gtk-4.0 \
+            gir1.2-adw-1 \
+            libadwaita-1-0 \
+            python3-gi \
+            python3-gi-cairo \
+            appstream
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: pip install meson ninja ruff
+
+      - name: Lint
+        run: ruff check src/
+
+      - name: Configure
+        run: meson setup build
+
+      - name: Compile
+        run: ninja -C build
+
+      - name: Test
+        run: meson test -C build --print-errorlogs
+
+      - name: Create versioned release tarball
+        run: meson dist -C build
+
+      - name: Upload release tarball artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: braus-source-release
+          path: |
+            build/meson-dist/*.tar.xz
+            build/meson-dist/*.sha256sum
+          if-no-files-found: error
+
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Point manifest at this checkout
+        run: |
+          python3 - <<'EOF'
+          import json
+          with open('com.properlypurple.braus.json') as f:
+              manifest = json.load(f)
+          manifest['modules'][0]['sources'] = [
+              {'type': 'dir', 'path': '.', 'skip': ['.git', 'build']}
+          ]
+          with open('com.properlypurple.braus.ci.json', 'w') as f:
+              json.dump(manifest, f, indent=4)
+          EOF
+
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: com.properlypurple.braus.flatpak
+          manifest-path: com.properlypurple.braus.ci.json
+          cache-key: flatpak-builder-${{ github.sha }}
