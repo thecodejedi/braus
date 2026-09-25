@@ -79,8 +79,21 @@ class Application(Adw.Application):
                 self.browser_mappings.clear()
                 return 0
             if args and args[0] == '--get-mappings':
+                options = {
+                    rule[0]: rule for rule in self.browser_mappings.load_options()
+                }
                 for prefix, browser_id in self.browser_mappings.load():
-                    print(f"{prefix} : {browser_id}")
+                    rule = options.get(prefix)
+                    line = f"{prefix} : {browser_id}"
+                    if rule is not None:
+                        names = []
+                        if rule[1]:
+                            names.append(f"profile={rule[1]}")
+                        if rule[2]:
+                            names.append("private")
+                        if names:
+                            line += f" ({', '.join(names)})"
+                    print(line)
                 return 0
         except IndexError:
             print(_("Missing arguments"), file=sys.stderr)

@@ -25,11 +25,27 @@ gi.require_version('Adw', '1')
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 
+from braus.browser_profiles import (  # noqa: E402
+    build_command,
+    launch_args,
+    list_profiles,
+    profile_identifier,
+)
 from braus.url_scopes import SCOPES, SCOPE_DOMAIN, scoped_url  # noqa: E402
 
 
 class BrausWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'BrausWindow'
+
+
+def _profile_key(browser):
+    parts = [
+        browser.get_id() or "",
+        browser.get_display_name() or "",
+        browser.get_executable() or "",
+        browser.get_commandline() or "",
+    ]
+    return " ".join(parts)
 
     def __init__(self, app, url):
         super().__init__(title=_("Braus"), application=app)
@@ -37,6 +53,8 @@ class BrausWindow(Adw.ApplicationWindow):
         self.browsers = []
         self.launching = False
         self.banner = None
+        self.incognito = False
+        self.selected_profiles = {}
 
         self.entry = Gtk.Entry()
         self.entry.set_icon_from_icon_name(
@@ -62,10 +80,19 @@ class BrausWindow(Adw.ApplicationWindow):
         section.append(_("Never ask to be default"), "win.never-ask")
         menu.append_section(None, section)
         menu.append(_("Quit"), "app.quit")
+        self.incognito_button = Gtk.ToggleButton()
+        self.incognito_button.set_icon_name("weather-clear-night-symbolic")
+        self.incognito_button.add_css_class("flat")
+        self.incognito_button.set_tooltip_text(
+            _("Open the link in a private window")
+        )
+        self.incognito_button.connect("toggled", self.on_incognito_toggled)
+
         options_button = Gtk.MenuButton()
         options_button.set_icon_name("preferences-system-symbolic")
         options_button.set_menu_model(menu)
         options_button.set_tooltip_text(_("Main Menu"))
+        header.pack_end(self.incognito_button)
         header.pack_end(options_button)
 
         self.browser_grid = Gtk.FlowBox(
@@ -135,7 +162,18 @@ class BrausWindow(Adw.ApplicationWindow):
         url = self.entry.get_text()
         mapped = app.browser_mappings.determine_browser(url, browsers)
         if mapped is not None:
-            mapped.launch_uris([url])
+            profile, incognito = app.browser_mappings.determine_options(url)
+            extra_args = launch_args(
+                _profile_key(mapped), profile, incognito
+            )
+            if extra_args:
+                command = build_command(mapped.get_commandline(), url, extra_args)
+                try:
+                    Gio.Subprocess.new(command, Gio.SubprocessFlags.NONE)
+                except GLib.Error:
+                    mapped.launch_uris([url])
+            else:
+                mapped.launch_uris([url])
             self.close()
             return
 
@@ -190,6 +228,10 @@ class BrausWindow(Adw.ApplicationWindow):
         icon.set_pixel_size(48)
         icon.set_valign(Gtk.Align.START)
 
+        profiles = list_profiles(_profile_key(browser))
+        if profiles:
+            self.selected_profiles.setdefault(browser.get_id(), profiles[0])
+
         label = Gtk.Label.new(browser.get_display_name())
         label.set_max_width_chars(12)
         label.set_wrap(True)
@@ -228,6 +270,8 @@ class BrausWindow(Adw.ApplicationWindow):
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         card.append(overlay)
+        if profiles:
+            card.append(self.create_profile_button(app, index, browser, profiles))
         if index < 10:
             hotkey_name = str((index + 1) % 10)
             hotkey_label = Gtk.Label(label=hotkey_name)
@@ -238,6 +282,92 @@ class BrausWindow(Adw.ApplicationWindow):
         card_widget = Gtk.FlowBoxChild()
         card_widget.set_child(card)
         return card_widget
+
+    @staticmethod
+    def _browser_icon(browser, pixel_size):
+        gicon = browser.get_icon()
+        if gicon is not None:
+            image = Gtk.Image.new_from_gicon(gicon)
+        else:
+            image = Gtk.Image.new_from_icon_name('applications-internet')
+        image.set_pixel_size(pixel_size)
+        return image
+
+    def create_profile_button(self, app, index, browser, profiles):
+        selected = self.selected_profiles.get(browser.get_id())
+        if selected is None:
+            selected = profiles[0]
+            self.selected_profiles[browser.get_id()] = selected
+
+        small_icon = self._browser_icon(browser, 16)
+
+        label = Gtk.Label.new(selected.name)
+        label.set_ellipsize(Pango.EllipsizeMode.END)
+        label.set_max_width_chars(12)
+
+        box = Gtk.Box(spacing=6)
+        box.append(small_icon)
+        box.append(label)
+        if len(profiles) > 1:
+            chevron = Gtk.Image.new_from_icon_name("pan-down-symbolic")
+            chevron.set_pixel_size(12)
+            box.append(chevron)
+
+        profile_button = Gtk.MenuButton()
+        profile_button.set_child(box)
+        profile_button.add_css_class("flat")
+        profile_button.set_tooltip_text(
+            _("Choose a profile for {}").format(browser.get_display_name())
+        )
+
+        popover = Gtk.Popover()
+        list_box = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        list_box.set_size_request(180, -1)
+        row_profiles = {}
+        for profile in profiles:
+            row = Gtk.ListBoxRow()
+            row_profile_icon = self._browser_icon(browser, 16)
+            row_label = Gtk.Label.new(profile.name)
+            row_label.set_hexpand(True)
+            row_label.set_xalign(0)
+            row_label.set_ellipsize(Pango.EllipsizeMode.END)
+            row_box = Gtk.Box(spacing=8)
+            row_box.append(row_profile_icon)
+            row_box.append(row_label)
+            row.set_child(row_box)
+            list_box.append(row)
+            row_profiles[row] = profile
+        list_box.connect(
+            "row-activated", self.on_profile_selected,
+            browser, row_profiles, profile_button, label,
+        )
+        popover.set_child(list_box)
+        profile_button.set_popover(popover)
+        return profile_button
+
+    def on_profile_selected(self, list_box, row, browser, row_profiles,
+                            button, label):
+        profile = row_profiles.get(row)
+        if profile is None:
+            return
+        self.selected_profiles[browser.get_id()] = profile
+        label.set_text(profile.name)
+        popover = button.get_popover()
+        if popover is not None:
+            popover.popdown()
+        toast = Adw.Toast(title=_("Profile: {}").format(profile.name))
+        self.toast_overlay.add_toast(toast)
+
+    def on_incognito_toggled(self, button):
+        self.incognito = button.get_active()
+        if self.incognito:
+            self.incognito_button.add_css_class("suggested-action")
+        else:
+            self.incognito_button.remove_css_class("suggested-action")
+
+    def _launch_extra_args(self, browser):
+        profile = self.selected_profiles.get(browser.get_id())
+        return launch_args(_profile_key(browser), profile, self.incognito)
 
     def on_entry_clicked(self, gesture, n_press, x, y):
         self.entry.set_can_focus(True)
@@ -321,16 +451,49 @@ class BrausWindow(Adw.ApplicationWindow):
             heading=_("Always open with {}").format(browser.get_display_name()),
             body=url,
         )
+
+        selected_profile = self.selected_profiles.get(browser.get_id())
+        profile_switch = None
+        if selected_profile is not None:
+            profile_switch = Gtk.Switch()
+            profile_switch.set_valign(Gtk.Align.CENTER)
+            profile_label = Gtk.Label.new(
+                _("Remember profile: {}").format(selected_profile.name)
+            )
+            profile_label.set_xalign(0)
+            profile_label.set_hexpand(True)
+            profile_box = Gtk.Box(spacing=6)
+            profile_box.append(profile_label)
+            profile_box.append(profile_switch)
+            options_box.append(profile_box)
+
+        private_switch = Gtk.Switch()
+        private_switch.set_valign(Gtk.Align.CENTER)
+        private_switch.set_active(self.incognito)
+        private_label = Gtk.Label.new(_("Open in private window"))
+        private_label.set_xalign(0)
+        private_label.set_hexpand(True)
+        private_box = Gtk.Box(spacing=6)
+        private_box.append(private_label)
+        private_box.append(private_switch)
+        options_box.append(private_box)
+
         dialog.set_extra_child(options_box)
         dialog.add_response("cancel", _("Cancel"))
         dialog.add_response("save", _("Save Rule and Open"))
         dialog.set_response_appearance("save", Adw.ResponseAppearance.SUGGESTED)
         dialog.set_default_response("save")
         dialog.set_close_response("cancel")
-        dialog.connect("response", self.on_rule_response, app, browser, radios, index)
+        dialog.connect(
+            "response", self.on_rule_response,
+            app, browser, radios, index, profile_switch, private_switch,
+        )
         return dialog
 
-    def on_rule_response(self, dialog, response, app, browser, radios, index):
+    def on_rule_response(
+        self, dialog, response, app, browser, radios, index,
+        profile_switch, private_switch,
+    ):
         if response != "save":
             return
         prefix = None
@@ -340,10 +503,21 @@ class BrausWindow(Adw.ApplicationWindow):
                 break
         if prefix is None:
             return
-        app.browser_mappings.set_browser(prefix, browser.get_id())
-        self.toast_overlay.add_toast(
-            Adw.Toast(title=_("Rule saved: {}").format(prefix))
+        remember_profile = (
+            profile_switch is not None and profile_switch.get_active()
         )
+        use_private = private_switch.get_active()
+        app.browser_mappings.set_browser(prefix, browser.get_id())
+        selected_profile = self.selected_profiles.get(browser.get_id())
+        profile_id = profile_identifier(
+            _profile_key(browser), selected_profile
+        ) if (remember_profile and selected_profile is not None) else None
+        app.browser_mappings.set_options(prefix, profile_id, use_private)
+        if use_private:
+            self.incognito = True
+            self.incognito_button.set_active(True)
+        toast = Adw.Toast(title=_("Rule saved: {}").format(prefix))
+        self.toast_overlay.add_toast(toast)
         self.launch_browser(index, app)
 
     def launch_browser(self, index, app):
@@ -351,7 +525,23 @@ class BrausWindow(Adw.ApplicationWindow):
             return
         self.launching = True
         browser = self.browsers[index]
-        browser.launch_uris([self.entry.get_text()])
+        url = self.entry.get_text()
+        extra_args = self._launch_extra_args(browser)
+        if extra_args:
+            command = build_command(browser.get_commandline(), url, extra_args)
+            try:
+                Gio.Subprocess.new(command, Gio.SubprocessFlags.NONE)
+            except GLib.Error:
+                self.launching = False
+                toast = Adw.Toast(
+                    title=_("Could not launch {}").format(
+                        browser.get_display_name()
+                    )
+                )
+                self.toast_overlay.add_toast(toast)
+                return
+        else:
+            browser.launch_uris([url])
         toast = Adw.Toast(
             title=_("Opening {}…").format(browser.get_display_name())
         )

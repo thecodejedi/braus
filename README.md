@@ -35,10 +35,18 @@ you a quick picker with every installed browser whenever a link is clicked:
   your work browser, videos in your media browser. You can also create a
   rule right from the picker: click the bookmark-style icon on a browser
   card and choose whether the rule applies to the exact URL, the path, or
-  the whole domain.
+  the whole domain. The rule can also remember the selected browser
+  profile and/or open in a private window, so matching links always open
+  exactly the way you chose.
 - **One keystroke** — Braus is built for muscle memory: open, tap a number,
   done. `Escape` dismisses without launching anything; `Enter` opens the
   first browser.
+- **Browser profiles** — for browsers with multiple profiles (Firefox and
+  Chromium-based, also Flatpak and Snap installs), each browser card gets a
+  small profile button showing the browser icon and the profile name. Click
+  it to pick a different profile for this link.
+- **Private windows** — toggle the moon icon in the header bar to open the
+  link in an incognito / private window.
 
 It's especially useful for web developers and anyone using multiple browsers
 or profiles (personal, work, containers…).
