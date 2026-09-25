@@ -29,6 +29,14 @@
     <display_length compare="ge">360</display_length>
   </requires>
   <releases>
+    <release version="0.3.1" date="2026-09-25">
+      <description translatable="no">
+        <ul>
+          <li>Graphical manager for URL rules: view, add, edit and delete rules, including profile and private-window options</li>
+        </ul>
+      </description>
+    </release>
+
     <release version="0.3.0" date="2025-09-24">
       <description translatable="no">
         <ul>

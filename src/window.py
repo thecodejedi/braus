@@ -31,6 +31,7 @@ from braus.browser_profiles import (  # noqa: E402
     list_profiles,
     profile_identifier,
 )
+from braus.mappings_manager import MappingsManagerWindow  # noqa: E402
 from braus.url_scopes import SCOPES, SCOPE_DOMAIN, scoped_url  # noqa: E402
 
 
@@ -77,6 +78,7 @@ def _profile_key(browser):
         menu = Gio.Menu()
         menu.append(_("About Braus"), "app.about")
         section = Gio.Menu()
+        section.append(_("URL Rules…"), "win.manage-urls")
         section.append(_("Never ask to be default"), "win.never-ask")
         menu.append_section(None, section)
         menu.append(_("Quit"), "app.quit")
@@ -139,6 +141,9 @@ def _profile_key(browser):
         never_ask = Gio.SimpleAction.new("never-ask", None)
         never_ask.connect("activate", self.on_never_ask, app)
         self.add_action(never_ask)
+        manage_urls = Gio.SimpleAction.new("manage-urls", None)
+        manage_urls.connect("activate", self.on_manage_urls, app)
+        self.add_action(manage_urls)
 
     def populate_browsers(self, app):
         appinfo_id = app.get_application_id() + '.desktop'
@@ -568,3 +573,6 @@ def _profile_key(browser):
         self.remove_banner()
         toast = Adw.Toast(title=_("Okay, we won't ask again"))
         self.toast_overlay.add_toast(toast)
+
+    def on_manage_urls(self, action, param, app):
+        MappingsManagerWindow(self.get_application()).present()

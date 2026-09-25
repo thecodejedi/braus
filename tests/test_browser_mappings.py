@@ -86,7 +86,7 @@ class BrowserMappingsTests(unittest.TestCase):
         prefix, profile, incognito, extra = options[0]
         self.assertEqual(prefix, "https://example.com")
         self.assertEqual(profile, "work")
-        self.assertTrue(incognito)
+        self.assertEqual(incognito, "1")
         self.assertEqual(extra, [])
 
     def test_set_options_overwrites_same_prefix(self):
@@ -95,7 +95,7 @@ class BrowserMappingsTests(unittest.TestCase):
         options = self.mappings.load_options()
         self.assertEqual(len(options), 1)
         self.assertEqual(options[0][1], "")
-        self.assertFalse(options[0][2])
+        self.assertEqual(options[0][2], "")
 
     def test_determine_options_matches_prefix_case_insensitive(self):
         self.mappings.set_options("https://EXAMPLE.com", "work", True)

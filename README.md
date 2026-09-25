@@ -150,6 +150,10 @@ second is the `.desktop` file name of the browser (find yours with
 
 Setting a prefix that already exists **overwrites** the previous mapping.
 
+Manage rules graphically in the app: open the menu (⚙) and choose
+**URL Rules…**, or run `braus --manage`. The manager lists all rules and
+lets you add, edit (browser, profile, private window) and delete them.
+
 List the current mappings:
 
 ```bash
@@ -170,6 +174,7 @@ braus --clear
 | `braus --set <prefix> <browser.desktop>` | Always open URLs starting with `<prefix>` in that browser (overwrites an existing rule for the same prefix) |
 | `braus --get-mappings` | Print the current URL rules |
 | `braus --clear` | Remove all URL rules |
+| `braus --manage` | Open the graphical URL rules manager |
 | `braus --version` | Print the version |
 
 ## Building and contributing
