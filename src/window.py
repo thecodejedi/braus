@@ -39,15 +39,6 @@ class BrausWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'BrausWindow'
 
 
-def _profile_key(browser):
-    parts = [
-        browser.get_id() or "",
-        browser.get_display_name() or "",
-        browser.get_executable() or "",
-        browser.get_commandline() or "",
-    ]
-    return " ".join(parts)
-
     def __init__(self, app, url):
         super().__init__(title=_("Braus"), application=app)
         self.set_default_size(500, 220)
@@ -576,3 +567,14 @@ def _profile_key(browser):
 
     def on_manage_urls(self, action, param, app):
         MappingsManagerWindow(self.get_application()).present()
+
+
+
+def _profile_key(browser):
+    parts = [
+        browser.get_id() or "",
+        browser.get_display_name() or "",
+        browser.get_executable() or "",
+        browser.get_commandline() or "",
+    ]
+    return " ".join(parts)

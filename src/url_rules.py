@@ -1,5 +1,10 @@
 from dataclasses import dataclass
 
+try:
+    from braus.url_scopes import infer_scope  # noqa: E402
+except ImportError:
+    from url_scopes import infer_scope  # noqa: E402
+
 
 @dataclass(frozen=True)
 class UrlRule:
@@ -7,6 +12,7 @@ class UrlRule:
     browser_id: str
     profile: str = ""
     incognito: bool = False
+    scope: str = ""
 
 
 def combined_rules(mappings, options):
@@ -21,7 +27,15 @@ def combined_rules(mappings, options):
         prefix = str(entry[0])
         browser_id = str(entry[1])
         profile, incognito = options_by_prefix.get(prefix, ("", False))
-        rules.append(UrlRule(prefix, browser_id, profile, incognito))
+        rules.append(
+            UrlRule(
+                prefix,
+                browser_id,
+                profile,
+                incognito,
+                infer_scope(prefix),
+            )
+        )
     return rules
 
 

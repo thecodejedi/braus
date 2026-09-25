@@ -1,7 +1,7 @@
 name: braus
 title: Braus
 base: core24
-version: '0.3.1'
+version: '0.3.2'
 summary: A small application to select a browser every time you click a link anywhere
 description: |
   A small application to select a browser every time you click a link anywhere.

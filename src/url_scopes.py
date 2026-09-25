@@ -24,3 +24,15 @@ def scoped_url(url: str, scope: str) -> str:
             return f"{parsed.scheme}://{netloc}"
         return f"{parsed.scheme}://{netloc}{parsed.path}"
     return url
+
+
+def infer_scope(url):
+    """Guess which scope a stored prefix represents, for display purposes."""
+    if not url:
+        return SCOPE_URL
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        return SCOPE_URL
+    if parsed.path not in ("", "/"):
+        return SCOPE_PATH
+    return SCOPE_DOMAIN

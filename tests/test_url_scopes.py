@@ -66,5 +66,34 @@ class ScopedUrlTests(unittest.TestCase):
         )
 
 
+class InferScopeTests(unittest.TestCase):
+    def test_url_with_path_is_path_scope(self):
+        self.assertEqual(
+            url_scopes.infer_scope("https://example.com/docs/page"),
+            url_scopes.SCOPE_PATH,
+        )
+
+    def test_bare_domain_is_domain_scope(self):
+        self.assertEqual(
+            url_scopes.infer_scope("https://example.com"),
+            url_scopes.SCOPE_DOMAIN,
+        )
+
+    def test_root_path_is_domain_scope(self):
+        self.assertEqual(
+            url_scopes.infer_scope("https://example.com/"),
+            url_scopes.SCOPE_DOMAIN,
+        )
+
+    def test_non_url_is_url_scope(self):
+        self.assertEqual(
+            url_scopes.infer_scope("my-fancy-prefix"),
+            url_scopes.SCOPE_URL,
+        )
+
+    def test_empty_is_url_scope(self):
+        self.assertEqual(url_scopes.infer_scope(""), url_scopes.SCOPE_URL)
+
+
 if __name__ == "__main__":
     unittest.main()

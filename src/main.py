@@ -28,6 +28,8 @@ from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 from braus.browser_mappings import BrowserMappings  # noqa: E402
 from braus.mappings_manager import MappingsManagerWindow  # noqa: E402
+from braus.rule_args import parse_set_args  # noqa: E402
+from braus.url_scopes import scoped_url  # noqa: E402
 from braus.window import BrausWindow  # noqa: E402
 
 VERSION = None
@@ -74,26 +76,24 @@ class Application(Adw.Application):
         args = command_line.get_arguments()[1:]
         try:
             if args and args[0] == '--set':
-                self.browser_mappings.set_browser(args[1], args[2])
+                spec = parse_set_args(args[1:])
+                prefix = scoped_url(spec.url, spec.scope)
+                self.browser_mappings.set_rule(
+                    prefix, spec.browser_id, spec.profile, spec.private
+                )
                 return 0
             if args and args[0] == '--clear':
                 self.browser_mappings.clear()
                 return 0
             if args and args[0] == '--get-mappings':
-                options = {
-                    rule[0]: rule for rule in self.browser_mappings.load_options()
-                }
-                for prefix, browser_id in self.browser_mappings.load():
-                    rule = options.get(prefix)
-                    line = f"{prefix} : {browser_id}"
-                    if rule is not None:
-                        names = []
-                        if rule[1]:
-                            names.append(f"profile={rule[1]}")
-                        if rule[2]:
-                            names.append("private")
-                        if names:
-                            line += f" ({', '.join(names)})"
+                for rule in self.browser_mappings.load_rules():
+                    line = f"{rule.prefix} : {rule.browser_id}"
+                    names = [_("scope={}").format(rule.scope)]
+                    if rule.profile:
+                        names.append(f"profile={rule.profile}")
+                    if rule.incognito:
+                        names.append("private")
+                    line += f" ({', '.join(names)})"
                     print(line)
                 return 0
             if args and args[0] == '--manage':
@@ -103,6 +103,9 @@ class Application(Adw.Application):
                 return 0
         except IndexError:
             print(_("Missing arguments"), file=sys.stderr)
+            return 1
+        except ValueError as error:
+            print(str(error), file=sys.stderr)
             return 1
         self.url = args[0] if args else None
         self.activate()

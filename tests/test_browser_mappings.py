@@ -128,6 +128,66 @@ class BrowserMappingsTests(unittest.TestCase):
         self.assertEqual(self.mappings.load(), [])
         self.assertEqual(self.mappings.load_options(), [])
 
+    def test_set_rule_stores_browser_and_options(self):
+        self.mappings.set_rule(
+            "https://example.com", "firefox.desktop", "work", True
+        )
+        self.assertEqual(
+            self.mappings.load(),
+            [["https://example.com", "firefox.desktop"]],
+        )
+        profile, incognito = self.mappings.determine_options(
+            "https://example.com/page"
+        )
+        self.assertEqual(profile, "work")
+        self.assertTrue(incognito)
+
+    def test_determine_options_longest_prefix_wins(self):
+        self.mappings.set_options("https://example.com", "personal", False)
+        self.mappings.set_options("https://example.com/docs", "work", True)
+        profile, incognito = self.mappings.determine_options(
+            "https://example.com/docs/page"
+        )
+        self.assertEqual(profile, "work")
+        self.assertTrue(incognito)
+
+    def test_determine_browser_longest_prefix_wins(self):
+        class FakeBrowser:
+            def __init__(self, browser_id):
+                self.browser_id = browser_id
+
+            def get_id(self):
+                return self.browser_id
+
+        self.mappings.set_browser("https://example.com", "a.desktop")
+        self.mappings.set_browser("https://example.com/docs", "b.desktop")
+        browsers = [FakeBrowser("a.desktop"), FakeBrowser("b.desktop")]
+        self.assertEqual(
+            self.mappings.determine_browser(
+                "https://example.com/docs/page", browsers
+            ).get_id(),
+            "b.desktop",
+        )
+        self.assertEqual(
+            self.mappings.determine_browser(
+                "https://example.com/other", browsers
+            ).get_id(),
+            "a.desktop",
+        )
+        self.assertIsNone(
+            self.mappings.determine_browser("https://other.org", browsers)
+        )
+
+    def test_load_rules_combines_mapping_and_options(self):
+        self.mappings.set_browser("https://example.com", "firefox.desktop")
+        self.mappings.set_options("https://example.com", "work", True)
+        rules = self.mappings.load_rules()
+        self.assertEqual(len(rules), 1)
+        self.assertEqual(rules[0].browser_id, "firefox.desktop")
+        self.assertEqual(rules[0].profile, "work")
+        self.assertTrue(rules[0].incognito)
+        self.assertEqual(rules[0].scope, "domain")
+
 
 if __name__ == "__main__":
     unittest.main()

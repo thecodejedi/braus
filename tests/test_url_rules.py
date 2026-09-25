@@ -50,6 +50,19 @@ class CombinedRulesTests(unittest.TestCase):
     def test_no_rules(self):
         self.assertEqual(url_rules.combined_rules([], []), [])
 
+    def test_rule_scope_is_inferred(self):
+        rules = url_rules.combined_rules(
+            [
+                ["https://example.com", "a.desktop"],
+                ["https://example.com/docs", "b.desktop"],
+                ["my-prefix", "c.desktop"],
+            ],
+            [],
+        )
+        self.assertEqual(rules[0].scope, "domain")
+        self.assertEqual(rules[1].scope, "path")
+        self.assertEqual(rules[2].scope, "url")
+
 
 class MatchRuleTests(unittest.TestCase):
     def setUp(self):
@@ -78,6 +91,31 @@ class MatchRuleTests(unittest.TestCase):
 
     def test_empty_url(self):
         self.assertIsNone(url_rules.match_rule(self.rules, ""))
+
+
+class MatchRuleOptionsTests(unittest.TestCase):
+    def setUp(self):
+        self.rules = url_rules.combined_rules(
+            [
+                ["https://example.com", "a.desktop"],
+                ["https://example.com/docs", "b.desktop"],
+            ],
+            [
+                ["https://example.com", "personal", "", []],
+                ["https://example.com/docs", "work", "1", []],
+            ],
+        )
+
+    def test_longest_prefix_options_win(self):
+        rule = url_rules.match_rule(self.rules, "https://example.com/docs/x")
+        self.assertEqual(rule.browser_id, "b.desktop")
+        self.assertEqual(rule.profile, "work")
+        self.assertTrue(rule.incognito)
+
+    def test_shorter_prefix_options_used_for_rest(self):
+        rule = url_rules.match_rule(self.rules, "https://example.com/other")
+        self.assertEqual(rule.profile, "personal")
+        self.assertFalse(rule.incognito)
 
 
 if __name__ == "__main__":

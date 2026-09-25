@@ -29,6 +29,17 @@
     <display_length compare="ge">360</display_length>
   </requires>
   <releases>
+    <release version="0.3.2" date="2026-09-25">
+      <description translatable="no">
+        <ul>
+          <li>Fix broken picker window that prevented the app from starting</li>
+          <li>CLI: --set gains --scope url|path|domain, --profile NAME and --private options to match the picker dialog</li>
+          <li>URL Rules manager: pick the url/path/domain scope when adding or editing a rule, with a live match preview</li>
+          <li>Rules match the most specific (longest) prefix consistently everywhere</li>
+          <li>Fix saving of the profile selection in the rules manager</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.1" date="2026-09-25">
       <description translatable="no">
         <ul>
