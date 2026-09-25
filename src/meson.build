@@ -22,12 +22,19 @@ braus_sources = [
   'main.py',
   'window.py',
   'browser_mappings.py',
+  'browser_profiles.py',
   'url_scopes.py',
 ]
 
 test('url-scopes',
   find_program('python3', required: true),
   args: files('../tests/test_url_scopes.py'),
+  suite: 'unit',
+)
+
+test('browser-profiles',
+  find_program('python3', required: true),
+  args: files('../tests/test_browser_profiles.py'),
   suite: 'unit',
 )
 

@@ -39,6 +39,12 @@ you a quick picker with every installed browser whenever a link is clicked:
 - **One keystroke** — Braus is built for muscle memory: open, tap a number,
   done. `Escape` dismisses without launching anything; `Enter` opens the
   first browser.
+- **Browser profiles** — for browsers with multiple profiles (Firefox and
+  Chromium-based, also Flatpak and Snap installs), each browser card gets a
+  small profile button showing the browser icon and the profile name. Click
+  it to pick a different profile for this link.
+- **Private windows** — toggle the moon icon in the header bar to open the
+  link in an incognito / private window.
 
 It's especially useful for web developers and anyone using multiple browsers
 or profiles (personal, work, containers…).
