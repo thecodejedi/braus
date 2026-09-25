@@ -1,1 +1,16 @@
-Kavya Gokul <git@properlypurple.com>
+Braus was originally created by:
+
+    Kavya Gokul <git@properlypurple.com>
+    https://github.com/properlypurple/braus
+
+and is maintained in this fork by:
+
+    Markus Hoffmann <thecodejedi@gmail.com>
+
+Contributions adopted from the original project and community forks
+(ideas and code remain the copyright of their authors, see CREDITS.md):
+
+    Pavel "GRbit" Griaznov <grbitt@gmail.com>   URL-to-browser mappings, --set overwrite, --get-mappings
+    Christian Weiske <cweiske@cweiske.de>       multiple instances, default-browser banner logic
+    Ivan Korniux <main@korniux.net>             hotkeys proof-of-concept, documentation
+    Triet Pham <triet.phm@gmail.com>            duplicate browser collapsing in the picker

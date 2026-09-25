@@ -137,6 +137,14 @@ The first argument is a prefix — every URL starting with it is matched. The
 second is the `.desktop` file name of the browser (find yours with
 `ls /usr/share/applications | grep -i browser`).
 
+Setting a prefix that already exists **overwrites** the previous mapping.
+
+List the current mappings:
+
+```bash
+braus --get-mappings
+```
+
 Clear all mappings with:
 
 ```bash
@@ -148,7 +156,8 @@ braus --clear
 | Command | Effect |
 |---|---|
 | `braus [URL]` | Show the picker for `URL` (or a blank picker) |
-| `braus --set <prefix> <browser.desktop>` | Always open URLs starting with `<prefix>` in that browser |
+| `braus --set <prefix> <browser.desktop>` | Always open URLs starting with `<prefix>` in that browser (overwrites an existing rule for the same prefix) |
+| `braus --get-mappings` | Print the current URL rules |
 | `braus --clear` | Remove all URL rules |
 | `braus --version` | Print the version |
 
@@ -173,6 +182,14 @@ Run the freshly built app without installing:
 ```bash
 GSETTINGS_SCHEMA_DIR=build/share/glib-2.0/schemas ./build/bin/braus
 ```
+
+## Credits & license
+
+Braus was originally created by **Kavya Gokul** and is maintained in this
+fork. Several ideas and code contributions from the original project and
+community forks are included — each contributor keeps the copyright to
+their work. See [CREDITS.md](CREDITS.md) and [AUTHORS](AUTHORS) for the
+detailed attribution with links.
 
 ## Project layout
 

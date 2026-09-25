@@ -78,6 +78,10 @@ class Application(Adw.Application):
             if args and args[0] == '--clear':
                 self.browser_mappings.clear()
                 return 0
+            if args and args[0] == '--get-mappings':
+                for prefix, browser_id in self.browser_mappings.load():
+                    print(f"{prefix} : {browser_id}")
+                return 0
         except IndexError:
             print(_("Missing arguments"), file=sys.stderr)
             return 1
@@ -102,11 +106,24 @@ class Application(Adw.Application):
         about_dialog = Adw.AboutWindow(
             transient_for=self.props.active_window,
             application_name=_("Braus"),
-            comments=_("A small app to choose a browser to open your links"),
+            comments=_(
+                "A small app to choose a browser to open your links"
+                "\n\n"
+                "URL-to-browser mappings, --set overwrite and --get-mappings:"
+                " Pavel “GRbit” Griaznov."
+                " Multiple instances and default-browser banner logic:"
+                " Christian Weiske."
+                " Hotkeys: Ivan Korniux."
+                " Duplicate browser collapsing: Triet Pham."
+                " Full attribution: see CREDITS.md."
+            ),
             website="https://braus.properlypurple.com",
-            developers=["Kavya Gokul"],
+            developers=[
+                "Kavya Gokul (original author)",
+                "Markus Hoffmann (maintainer)",
+            ],
             license_type=Gtk.License.GPL_3_0,
-            icon_name='com.properlypurple.braus',
+            icon_name="com.properlypurple.braus",
         )
         about_dialog.present()
 
