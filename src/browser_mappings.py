@@ -6,7 +6,7 @@ class BrowserMappings:
         self.settings = settings
 
     def set_browser(self, url: str, browser: str) -> None:
-        mappings = self.load()
+        mappings = [m for m in self.load() if m[0] != url]
         mappings.append([url, browser])
         self.settings.set_value("url-mapping", GLib.Variant('a(ss)', mappings))
 

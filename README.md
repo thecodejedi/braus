@@ -137,10 +137,19 @@ The first argument is a prefix — every URL starting with it is matched. The
 second is the `.desktop` file name of the browser (find yours with
 `ls /usr/share/applications | grep -i browser`).
 
+Setting the same prefix again overwrites the previous mapping instead of
+adding a duplicate.
+
 Clear all mappings with:
 
 ```bash
 braus --clear
+```
+
+List the current mappings with:
+
+```bash
+braus --get-mappings
 ```
 
 ### Command-line reference
@@ -150,6 +159,7 @@ braus --clear
 | `braus [URL]` | Show the picker for `URL` (or a blank picker) |
 | `braus --set <prefix> <browser.desktop>` | Always open URLs starting with `<prefix>` in that browser |
 | `braus --clear` | Remove all URL rules |
+| `braus --get-mappings` | Print all URL rules |
 | `braus --version` | Print the version |
 
 ## Building and contributing
