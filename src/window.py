@@ -126,9 +126,8 @@ class BrausWindow(Adw.ApplicationWindow):
             self.show_banner()
 
         browsers = Gio.AppInfo.get_all_for_type(app.content_types[1])
-        self.browsers = [
-            b for b in browsers if app.get_application_id() not in b.get_id()
-        ]
+        browsers = [b for b in browsers if app.get_application_id() not in b.get_id()]
+        self.browsers = self.dedupe_browsers(browsers)
 
         url = self.entry.get_text()
         mapped = app.browser_mappings.determine_browser(url, browsers)
@@ -151,6 +150,20 @@ class BrausWindow(Adw.ApplicationWindow):
 
         for index, browser in enumerate(self.browsers):
             self.browser_grid.append(self.create_browser_card(app, index, browser))
+
+    @staticmethod
+    def dedupe_browsers(browsers):
+        seen = set()
+        unique = []
+        for browser in browsers:
+            executable = browser.get_executable() or ""
+            name = browser.get_display_name()
+            key = (executable, name)
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(browser)
+        return unique
 
     def show_banner(self):
         self.banner = Adw.Banner(

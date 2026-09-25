@@ -78,6 +78,10 @@ class Application(Adw.Application):
             if args and args[0] == '--clear':
                 self.browser_mappings.clear()
                 return 0
+            if args and args[0] == '--get-mappings':
+                for prefix, browser_id in self.browser_mappings.load():
+                    print(f"{prefix} : {browser_id}")
+                return 0
         except IndexError:
             print(_("Missing arguments"), file=sys.stderr)
             return 1
