@@ -12,6 +12,9 @@ A small GTK4/libadwaita application for GNU/Linux that lets you choose which
 browser opens a link — every time.
 
 ![Braus picker window](data/screenshots/braus-picker.png)
+![Profile picker and private window](data/screenshots/braus-picker-profiles.png)
+![URL rules manager](data/screenshots/braus-rules.png)
+![Add-rule dialog with scope, profile and private options](data/screenshots/braus-rule-editor.png)
 
 *GNU/Linux alternative to Choosy (macOS), BrowserChooser (Windows) and
 Browserosaurus (macOS).*
