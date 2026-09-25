@@ -1,0 +1,44 @@
+name: braus
+title: Braus
+base: core24
+version: '0.3.0'
+summary: A small application to select a browser every time you click a link anywhere
+description: |
+  A small application to select a browser every time you click a link anywhere.
+  This is especially useful if you have multiple browsers or profiles, and you
+  want to be able to open certain links in certain browsers. Very useful for
+  web developers, but also for a lot of other people.
+license: GPL-3.0+
+grade: stable
+confinement: strict
+platforms:
+  amd64:
+  arm64:
+
+parts:
+  braus:
+    source: https://github.com/thecodejedi/braus.git
+    plugin: meson
+    meson-parameters: [--prefix=/usr]
+    build-packages:
+      - gettext
+      - desktop-file-utils
+    stage-packages:
+      - python3-gi
+      - gir1.2-gtk-4.0
+      - gir1.2-adw-1
+      - libadwaita-1-0
+      - libcanberra-gtk3-module
+      - librsvg2-common
+
+apps:
+  braus:
+    command: usr/bin/braus
+    desktop: usr/share/applications/com.properlypurple.braus.desktop
+    extensions: [gnome]
+    plugs:
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - browser-support
+      - network

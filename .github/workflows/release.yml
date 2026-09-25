@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify tag matches meson project version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="$(sed -n "s/^project('braus',\s*version: '\([^']*\)'.*/\1/p" meson.build | head -n1)"
+          if [ -z "$VERSION" ]; then
+            echo "Could not read version from meson.build" && exit 1
+          fi
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag $TAG does not match meson project version $VERSION" && exit 1
+          fi
+          echo "Releasing $TAG"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gettext \
+            desktop-file-utils \
+            libglib2.0-dev-bin \
+            appstream \
+            xz-utils
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: pip install meson ninja
+
+      - name: Build, test and create source tarball
+        run: |
+          meson setup build
+          meson compile -C build
+          meson test -C build --print-errorlogs
+          meson dist -C build
+
+      - name: Point manifest at this tagged checkout
+        run: |
+          python3 - <<'EOF'
+          import json
+          with open('com.properlypurple.braus.json') as f:
+              manifest = json.load(f)
+          manifest['modules'][0]['sources'] = [
+              {'type': 'dir', 'path': '.', 'skip': ['.git', 'build']}
+          ]
+          with open('com.properlypurple.braus.release.json', 'w') as f:
+              json.dump(manifest, f, indent=4)
+          EOF
+
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: com.properlypurple.braus-${{ github.ref_name }}.flatpak
+          manifest-path: com.properlypurple.braus.release.json
+          cache-key: flatpak-release-${{ github.sha }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          gh release create "$TAG" \
+            --title "Braus $TAG" \
+            --generate-notes \
+            build/meson-dist/braus-${TAG}.tar.xz \
+            build/meson-dist/braus-${TAG}.tar.xz.sha256sum \
+            com.properlypurple.braus-${TAG}.flatpak

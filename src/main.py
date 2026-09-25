@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # main.py
 #
 # Copyright 2020 Kavya Gokul
@@ -16,97 +17,102 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+from gettext import gettext as _
 
 import gi
 
-gi.require_version('Gtk', '3.0')
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
 
-from gi.repository import Gdk, Gio, GLib, Gtk, Pango
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
-from .browser_mappings import BrowserMappings
-from .window import BrausWindow
+from braus.browser_mappings import BrowserMappings  # noqa: E402
+from braus.window import BrausWindow  # noqa: E402
+
+VERSION = None
 
 
-class Application(Gtk.Application):
-
-    content_types = ["x-scheme-handler/http",
+class Application(Adw.Application):
+    content_types = [
+        "x-scheme-handler/http",
         "x-scheme-handler/https",
         "text/html",
         "application/x-extension-htm",
         "application/x-extension-html",
         "application/x-extension-shtml",
         "application/xhtml+xml",
-        "application/x-extension-xht"
-        ]
+        "application/x-extension-xht",
+    ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(
-            *args,
             application_id='com.properlypurple.braus',
-            flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE | Gio.ApplicationFlags.NON_UNIQUE,
+            flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE
+            | Gio.ApplicationFlags.NON_UNIQUE,
             **kwargs
         )
-
+        self.url = None
         self.settings = Gio.Settings.new("com.properlypurple.braus")
         self.browser_mappings = BrowserMappings(self.settings)
+        self.add_main_option(
+            'version',
+            0,
+            GLib.OptionFlags.NONE,
+            GLib.OptionArg.NONE,
+            _("Print version and exit"),
+            None,
+        )
 
-        # self.add_main_option(
-        #     "",
-        #     ord("u"),
-        #     GLib.OptionFlags.NONE,
-        #     GLib.OptionArg.NONE,
-        #     "URL to open",
-        #     None,
-        # )
-
-    def do_activate(self):
-        self.win = BrausWindow(self)
-        self.win.show_all()
+    def do_handle_local_options(self, options):
+        if options.contains('version'):
+            print(VERSION or "unknown")
+            return 0
+        return Adw.Application.do_handle_local_options(self, options)
 
     def do_command_line(self, command_line):
-        args = command_line.get_arguments()
-        if len(args)== 0:
-            self.activate()
-
+        args = command_line.get_arguments()[1:]
         try:
-            if(args[1] =='--set'):
-                url = args[2]
-                browser = args[3]
-                self.browser_mappings.do_setbrowser(url, browser)
+            if args and args[0] == '--set':
+                self.browser_mappings.set_browser(args[1], args[2])
                 return 0
-
-            if(args[1] =='--clear'):
-                self.browser_mappings.do_clearbrowsermappings()
+            if args and args[0] == '--clear':
+                self.browser_mappings.clear()
                 return 0
-
-            if(args[1] =='--get-mappings'):
-                mappings = self.browser_mappings.do_loadUrlMappings()
-                for url, browser in mappings.items():
-                    print(url, ":", browser)
-                return 0
-
         except IndexError:
-            print("No arguments provided")
-
+            print(_("Missing arguments"), file=sys.stderr)
+            return 1
+        self.url = args[0] if args else None
         self.activate()
         return 0
 
     def do_startup(self):
-        Gtk.Application.do_startup(self)
+        Adw.Application.do_startup(self)
+        about_action = Gio.SimpleAction.new('about', None)
+        about_action.connect('activate', self.on_about)
+        self.add_action(about_action)
+        quit_action = Gio.SimpleAction.new('quit', None)
+        quit_action.connect('activate', lambda *_: self.quit())
+        self.add_action(quit_action)
 
-    def on_about(self, action):
-        about_dialog = Gtk.AboutDialog(transient_for=self.win, modal=True)
+    def do_activate(self):
+        self.win = BrausWindow(self, self.url)
+        self.win.present()
 
-        about_dialog.set_title(_("About"))
-        about_dialog.set_program_name(_("Braus"))
-        about_dialog.set_comments("A small app to choose a browser to open your links")
-        about_dialog.set_website("https://braus.properlypurple.com")
-        about_dialog.set_website_label("Braus website")
-        about_dialog.set_authors(["Kavya Gokul"])
-        about_dialog.connect('response', lambda dialog, data: dialog.destroy())
-        about_dialog.set_logo_icon_name('applications-internet')
+    def on_about(self, action, param):
+        about_dialog = Adw.AboutWindow(
+            transient_for=self.props.active_window,
+            application_name=_("Braus"),
+            comments=_("A small app to choose a browser to open your links"),
+            website="https://braus.properlypurple.com",
+            developers=["Kavya Gokul"],
+            license_type=Gtk.License.GPL_3_0,
+            icon_name='com.properlypurple.braus',
+        )
         about_dialog.present()
 
+
 def main(version):
+    global VERSION
+    VERSION = version
     app = Application()
     return app.run(sys.argv)
