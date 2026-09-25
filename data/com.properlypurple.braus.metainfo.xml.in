@@ -36,6 +36,8 @@
           <li>Update Flatpak runtime to GNOME 48</li>
           <li>Fix crash when pressing non-numeric keys</li>
           <li>Responsive browser grid, Escape to dismiss, app icon</li>
+          <li>URL mappings now overwrite instead of duplicating (--set), new --get-mappings command (idea: Pavel “GRbit” Griaznov)</li>
+          <li>Collapse duplicate browser entries in the picker (idea: Triet Pham)</li>
         </ul>
       </description>
     </release>

@@ -183,6 +183,14 @@ Run the freshly built app without installing:
 GSETTINGS_SCHEMA_DIR=build/share/glib-2.0/schemas ./build/bin/braus
 ```
 
+## Credits & license
+
+Braus was originally created by **Kavya Gokul** and is maintained in this
+fork. Several ideas and code contributions from the original project and
+community forks are included — each contributor keeps the copyright to
+their work. See [CREDITS.md](CREDITS.md) and [AUTHORS](AUTHORS) for the
+detailed attribution with links.
+
 ## Project layout
 
 | Path | What it is |
