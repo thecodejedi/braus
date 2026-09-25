@@ -11,6 +11,8 @@
 A small GTK4/libadwaita application for GNU/Linux that lets you choose which
 browser opens a link — every time.
 
+![Braus picker window](data/screenshots/braus-picker.png)
+
 *GNU/Linux alternative to Choosy (macOS), BrowserChooser (Windows) and
 Browserosaurus (macOS).*
 
@@ -57,6 +59,23 @@ flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flat
 flatpak-builder --user --install --force-clean \
     --install-deps-from=flathub build-dir com.properlypurple.braus.json
 ```
+
+### Download a release
+
+Every [release](https://github.com/thecodejedi/braus/releases) ships two
+artifacts, built and tested by CI:
+
+- **`braus-<version>.tar.xz`** — standard Meson source tarball (with
+  sha256sum). Build as shown below.
+- **`com.properlypurple.braus-<version>.flatpak`** — single-file Flatpak
+  bundle; install it directly, no store needed:
+
+  ```bash
+  flatpak install --user com.properlypurple.braus-<version>.flatpak
+  ```
+
+Releases are triggered by pushing a `X.Y.Z` tag (which must match the
+version in `meson.build`); see [release workflow](.github/workflows/release.yml).
 
 ### From source
 

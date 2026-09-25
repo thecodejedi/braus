@@ -12,6 +12,12 @@
   </description>
   <launchable type="desktop-id">com.properlypurple.braus.desktop</launchable>
   <icon type="stock" height="128" width="128">com.properlypurple.braus</icon>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The browser picker with the URL bar and hotkey hints</caption>
+      <image type="source" width="553" height="247">https://raw.githubusercontent.com/thecodejedi/braus/main/data/screenshots/braus-picker.png</image>
+    </screenshot>
+  </screenshots>
   <url type="homepage">https://braus.properlypurple.com</url>
   <url type="bugtracker">https://github.com/thecodejedi/braus/issues</url>
   <url type="vcs-browser">https://github.com/thecodejedi/braus</url>
