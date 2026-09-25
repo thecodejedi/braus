@@ -26,6 +26,13 @@ from braus.browser_profiles import (  # noqa: E402
     list_profiles,
     profile_identifier,
 )
+from braus.url_scopes import (  # noqa: E402
+    SCOPES,
+    SCOPE_DOMAIN,
+    SCOPE_PATH,
+    SCOPE_URL,
+    scoped_url,
+)
 
 
 def _profile_key(browser):
@@ -128,6 +135,12 @@ class MappingsManagerWindow(Adw.ApplicationWindow):
             )
             row.add_suffix(warning)
             row.add_css_class("warning")
+        scope_names = {
+            SCOPE_URL: _("exact URL"),
+            SCOPE_PATH: _("path"),
+            SCOPE_DOMAIN: _("domain"),
+        }
+        subtitle = f"{subtitle} — {scope_names.get(rule.scope or SCOPE_URL, rule.scope)}"
         if rule.profile:
             subtitle = f"{subtitle} — {rule.profile}"
         if rule.incognito:
@@ -175,15 +188,37 @@ class RuleEditorDialog(Adw.AlertDialog):
         is_edit = existing is not None
         super().__init__(
             heading=_("Edit rule") if is_edit else _("Add rule"),
-            body=_("Opens URLs starting with the prefix without showing the picker."),
+            body=_("Opens matching links without showing the picker."),
         )
         self.manager = manager
         self.existing = existing
         self.check_buttons = {}
+        self.scope_buttons = {}
 
-        self.url_entry = Adw.EntryRow(title=_("URL prefix"))
+        self.url_entry = Adw.EntryRow(title=_("URL"))
         if is_edit:
             self.url_entry.set_text(existing.prefix)
+        self.url_entry.connect("changed", lambda *_: self.update_scope_hint())
+
+        scope_names = {
+            SCOPE_URL: _("Only this URL"),
+            SCOPE_PATH: _("This path"),
+            SCOPE_DOMAIN: _("This domain"),
+        }
+        scope_group = Adw.PreferencesGroup(title=_("Apply to"))
+        group = None
+        for scope in SCOPES:
+            radio = Gtk.CheckButton()
+            if group is not None:
+                radio.set_group(group)
+            group = radio
+            row = Adw.ActionRow(title=scope_names[scope])
+            row.add_prefix(radio)
+            row.set_activatable_widget(radio)
+            radio.connect("toggled", self.on_scope_toggled, scope)
+            scope_group.add(row)
+            self.scope_buttons[scope] = radio
+        self.scope_buttons[SCOPE_DOMAIN].set_active(True)
 
         browser_group = Adw.PreferencesGroup(title=_("Browser"))
         for browser in sorted(
@@ -234,6 +269,7 @@ class RuleEditorDialog(Adw.AlertDialog):
         url_group = Adw.PreferencesGroup()
         url_group.add(self.url_entry)
         box.append(url_group)
+        box.append(scope_group)
         box.append(scrolled)
 
         self.set_extra_child(box)
@@ -245,12 +281,33 @@ class RuleEditorDialog(Adw.AlertDialog):
         self.connect("response", self.on_response)
 
         if is_edit:
+            scope_button = self.scope_buttons.get(existing.scope or SCOPE_URL)
+            if scope_button is not None:
+                scope_button.set_active(True)
             self.select_browser(existing.browser_id, existing.profile)
             self.private_switch.set_active(existing.incognito)
         else:
-            first = next(iter(self.check_buttons))
+            first = next(iter(self.check_buttons), None)
             if first is not None:
                 self.check_buttons[first].set_active(True)
+
+    def on_scope_toggled(self, check, scope):
+        if not check.get_active():
+            return
+        self.update_scope_hint()
+
+    def update_scope_hint(self):
+        url = self.url_entry.get_text().strip()
+        if not url:
+            self.url_entry.set_title(_("URL"))
+            return
+        scope = next(
+            (s for s, button in self.scope_buttons.items() if button.get_active()),
+            SCOPE_URL,
+        )
+        self.url_entry.set_title(
+            _("Matches: {}").format(scoped_url(url, scope))
+        )
 
     def on_browser_toggled(self, check):
         if not check.get_active():
@@ -270,11 +327,9 @@ class RuleEditorDialog(Adw.AlertDialog):
         return list_profiles(_profile_key(browser))
 
     def refresh_profiles(self, browser_id):
-        self.profile_row.get_model().splice(
-            0, self.profile_row.get_model().get_n_items(), []
-        )
-        for profile in self.browser_profiles(browser_id):
-            self.profile_row.get_model().append(profile.name)
+        model = self.profile_row.get_model()
+        names = [profile.name for profile in self.browser_profiles(browser_id)]
+        model.splice(1, model.get_n_items() - 1, names)
 
     def select_browser(self, browser_id, profile):
         check = self.check_buttons.get(browser_id)
@@ -308,20 +363,30 @@ class RuleEditorDialog(Adw.AlertDialog):
                 return profile_identifier(_profile_key(browser), candidate)
         return None
 
+    def selected_scope(self):
+        for scope, button in self.scope_buttons.items():
+            if button.get_active():
+                return scope
+        return SCOPE_URL
+
     def on_response(self, dialog, response):
         if response != "save":
             self.close()
             return
-        prefix = self.url_entry.get_text().strip()
-        if not prefix:
-            self.manager.toast(_("Enter a URL prefix"))
+        url = self.url_entry.get_text().strip()
+        if not url:
+            self.manager.toast(_("Enter a URL"))
             return
+        prefix = scoped_url(url, self.selected_scope())
         browser_id = self._active_browser_id()
         if browser_id is None:
             self.manager.toast(_("Pick a browser"))
             return
         mappings = self.manager.app.browser_mappings
-        if self.existing is not None and self.existing.prefix.lower() != prefix.lower():
+        if (
+            self.existing is not None
+            and self.existing.prefix.lower() != prefix.lower()
+        ):
             mappings.remove_rule(self.existing.prefix)
         mappings.set_browser(prefix, browser_id)
         mappings.set_options(

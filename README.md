@@ -12,6 +12,9 @@ A small GTK4/libadwaita application for GNU/Linux that lets you choose which
 browser opens a link — every time.
 
 ![Braus picker window](data/screenshots/braus-picker.png)
+![Profile picker and private window](data/screenshots/braus-picker-profiles.png)
+![URL rules manager](data/screenshots/braus-rules.png)
+![Add-rule dialog with scope, profile and private options](data/screenshots/braus-rule-editor.png)
 
 *GNU/Linux alternative to Choosy (macOS), BrowserChooser (Windows) and
 Browserosaurus (macOS).*
@@ -37,7 +40,9 @@ you a quick picker with every installed browser whenever a link is clicked:
   card and choose whether the rule applies to the exact URL, the path, or
   the whole domain. The rule can also remember the selected browser
   profile and/or open in a private window, so matching links always open
-  exactly the way you chose.
+  exactly the way you chose. The same scope, profile and private-window
+  options are available from the command line (`--scope`, `--profile`,
+  `--private`) and in the URL Rules manager.
 - **One keystroke** — Braus is built for muscle memory: open, tap a number,
   done. `Escape` dismisses without launching anything; `Enter` opens the
   first browser.
@@ -144,15 +149,37 @@ braus --set https://work.example.com chromium_chromium.desktop
 braus --set http://my-videos.org google-chrome.desktop
 ```
 
-The first argument is a prefix — every URL starting with it is matched. The
-second is the `.desktop` file name of the browser (find yours with
-`ls /usr/share/applications | grep -i browser`).
+The first argument is the link to match, the second the `.desktop` file name
+of the browser (find yours with `ls /usr/share/applications | grep -i
+browser`). By default the rule matches the **exact URL**; add `--scope` to
+widen it:
 
-Setting a prefix that already exists **overwrites** the previous mapping.
+```bash
+braus --set https://work.example.com/report chromium.desktop --scope path
+braus --set https://meet.example.com firefox.desktop --scope domain
+```
+
+- `--scope url` (default) — only this exact URL
+- `--scope path` — every link under the same path
+- `--scope domain` — the whole domain
+
+A rule can also pin a browser **profile** and/or a **private window**:
+
+```bash
+braus --set https://work.example.com firefox.desktop --scope domain --profile work
+braus --set https://mail.example.com chromium.desktop --private
+braus --set https://mail.example.com chromium.desktop --scope domain --profile Personal --private
+```
+
+`--profile` takes the profile name shown in the browser's own profile picker;
+the browser's default profile is used when omitted.
+
+Setting a rule for a URL that already has one **overwrites** it.
 
 Manage rules graphically in the app: open the menu (⚙) and choose
 **URL Rules…**, or run `braus --manage`. The manager lists all rules and
-lets you add, edit (browser, profile, private window) and delete them.
+lets you add, edit (URL, url/path/domain scope, browser, profile, private
+window) and delete them.
 
 List the current mappings:
 

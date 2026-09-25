@@ -14,8 +14,20 @@
   <icon type="stock" height="128" width="128">com.properlypurple.braus</icon>
   <screenshots>
     <screenshot type="default">
-      <caption>The browser picker with the URL bar and hotkey hints</caption>
-      <image type="source" width="553" height="247">https://raw.githubusercontent.com/thecodejedi/braus/main/data/screenshots/braus-picker.png</image>
+      <caption>The browser picker with the URL bar, hotkey hints, profile button and private-window toggle</caption>
+      <image type="source" width="560" height="340">https://raw.githubusercontent.com/thecodejedi/braus/main/data/screenshots/braus-picker.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Profile picker popover opened from a browser card</caption>
+      <image type="source" width="560" height="460">https://raw.githubusercontent.com/thecodejedi/braus/main/data/screenshots/braus-picker-profiles.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The URL rules manager listing rules with browser, scope, profile and private options</caption>
+      <image type="source" width="560" height="460">https://raw.githubusercontent.com/thecodejedi/braus/main/data/screenshots/braus-rules.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The add-rule dialog with url/path/domain scope, browser, profile and private window options</caption>
+      <image type="source" width="560" height="460">https://raw.githubusercontent.com/thecodejedi/braus/main/data/screenshots/braus-rule-editor.png</image>
     </screenshot>
   </screenshots>
   <url type="homepage">https://braus.properlypurple.com</url>
@@ -29,6 +41,17 @@
     <display_length compare="ge">360</display_length>
   </requires>
   <releases>
+    <release version="0.3.2" date="2026-09-25">
+      <description translatable="no">
+        <ul>
+          <li>Fix broken picker window that prevented the app from starting</li>
+          <li>CLI: --set gains --scope url|path|domain, --profile NAME and --private options to match the picker dialog</li>
+          <li>URL Rules manager: pick the url/path/domain scope when adding or editing a rule, with a live match preview</li>
+          <li>Rules match the most specific (longest) prefix consistently everywhere</li>
+          <li>Fix saving of the profile selection in the rules manager</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.1" date="2026-09-25">
       <description translatable="no">
         <ul>

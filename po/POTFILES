@@ -5,3 +5,4 @@ src/main.py
 src/window.py
 src/braus.in
 src/mappings_manager.py
+src/rule_args.py

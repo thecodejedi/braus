@@ -1,9 +1,9 @@
 from gi.repository import Gio, GLib
 
 try:
-    from braus.url_rules import combined_rules  # noqa: E402
+    from braus.url_rules import combined_rules, match_rule  # noqa: E402
 except ImportError:
-    from url_rules import combined_rules  # noqa: E402
+    from url_rules import combined_rules, match_rule  # noqa: E402
 
 
 class BrowserMappings:
@@ -28,6 +28,12 @@ class BrowserMappings:
             GLib.Variant('a(sssa(ss))', list(options.values())),
         )
 
+    def set_rule(
+        self, prefix: str, browser_id: str, profile=None, incognito=False
+    ) -> None:
+        self.set_browser(prefix, browser_id)
+        self.set_options(prefix, profile, incognito)
+
     def remove_rule(self, prefix: str) -> None:
         mappings = {
             url: browser
@@ -42,8 +48,7 @@ class BrowserMappings:
             if str(rule[0]).lower() != prefix.lower()
         ]
         self.settings.set_value(
-            "rule-options",
-            GLib.Variant('a(sssa(ss))', options),
+            "rule-options", GLib.Variant('a(sssa(ss))', options),
         )
 
     def clear(self) -> None:
@@ -57,22 +62,26 @@ class BrowserMappings:
         return [list(rule) for rule in self.settings.get_value("rule-options")]
 
     def determine_browser(self, url: str, browsers):
-        url = url.lower()
-        for prefix, browser_id in self.load():
-            if not url.startswith(prefix.lower()):
-                continue
-            for browser in browsers:
-                if browser.get_id() == browser_id:
-                    return browser
+        rule = match_rule(self.load_rules(), url)
+        if rule is None:
+            return None
+        for browser in browsers:
+            if browser.get_id() == rule.browser_id:
+                return browser
         return None
 
     def determine_options(self, url: str):
-        url = url.lower()
+        url = (url or "").lower()
+        best = None
         for prefix, profile, incognito, _extra in self.load_options():
-            if not url.startswith(prefix.lower()):
+            prefix_lower = str(prefix).lower()
+            if not prefix_lower or not url.startswith(prefix_lower):
                 continue
-            return profile or None, str(incognito) == "1"
-        return None, False
+            if best is None or len(prefix_lower) > len(best[0]):
+                best = (prefix_lower, profile, incognito)
+        if best is None:
+            return None, False
+        return best[1] or None, str(best[2]) == "1"
 
     def load_rules(self):
         return combined_rules(self.load(), self.load_options())
