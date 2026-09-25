@@ -4,3 +4,4 @@ data/com.properlypurple.braus.gschema.xml
 src/main.py
 src/window.py
 src/braus.in
+src/mappings_manager.py

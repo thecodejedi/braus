@@ -27,6 +27,7 @@ gi.require_version('Adw', '1')
 from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 from braus.browser_mappings import BrowserMappings  # noqa: E402
+from braus.mappings_manager import MappingsManagerWindow  # noqa: E402
 from braus.window import BrausWindow  # noqa: E402
 
 VERSION = None
@@ -95,6 +96,11 @@ class Application(Adw.Application):
                             line += f" ({', '.join(names)})"
                     print(line)
                 return 0
+            if args and args[0] == '--manage':
+                self.manage_requested = True
+                self.activate()
+                self.manage_requested = False
+                return 0
         except IndexError:
             print(_("Missing arguments"), file=sys.stderr)
             return 1
@@ -112,6 +118,9 @@ class Application(Adw.Application):
         self.add_action(quit_action)
 
     def do_activate(self):
+        if getattr(self, 'manage_requested', False):
+            MappingsManagerWindow(self).present()
+            return
         self.win = BrausWindow(self, self.url)
         self.win.present()
 
