@@ -66,16 +66,28 @@ def list_profiles(key):
     return []
 
 
+def profile_identifier(key, profile):
+    if profile is None:
+        return None
+    if not isinstance(profile, BrowserProfile):
+        return profile
+    kind = detect_profile_kind(key)
+    if kind == PROFILE_KIND_CHROMIUM:
+        return profile.directory
+    return profile.name
+
+
 def launch_args(key, profile=None, incognito=False):
     kind = detect_profile_kind(key)
     if kind is None:
         return []
     args = []
-    if profile is not None:
+    identifier = profile_identifier(key, profile)
+    if identifier:
         if kind == PROFILE_KIND_CHROMIUM:
-            args.append(f"--profile-directory={profile}")
+            args.append(f"--profile-directory={identifier}")
         else:
-            args.extend(["-P", profile])
+            args.extend(["-P", identifier])
     if incognito:
         if kind == PROFILE_KIND_CHROMIUM:
             args.append("--incognito")

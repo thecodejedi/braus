@@ -35,7 +35,9 @@ you a quick picker with every installed browser whenever a link is clicked:
   your work browser, videos in your media browser. You can also create a
   rule right from the picker: click the bookmark-style icon on a browser
   card and choose whether the rule applies to the exact URL, the path, or
-  the whole domain.
+  the whole domain. The rule can also remember the selected browser
+  profile and/or open in a private window, so matching links always open
+  exactly the way you chose.
 - **One keystroke** — Braus is built for muscle memory: open, tap a number,
   done. `Escape` dismisses without launching anything; `Enter` opens the
   first browser.

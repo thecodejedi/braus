@@ -29,6 +29,7 @@ from braus.browser_profiles import (  # noqa: E402
     build_command,
     launch_args,
     list_profiles,
+    profile_identifier,
 )
 from braus.url_scopes import SCOPES, SCOPE_DOMAIN, scoped_url  # noqa: E402
 
@@ -161,7 +162,18 @@ def _profile_key(browser):
         url = self.entry.get_text()
         mapped = app.browser_mappings.determine_browser(url, browsers)
         if mapped is not None:
-            mapped.launch_uris([url])
+            profile, incognito = app.browser_mappings.determine_options(url)
+            extra_args = launch_args(
+                _profile_key(mapped), profile, incognito
+            )
+            if extra_args:
+                command = build_command(mapped.get_commandline(), url, extra_args)
+                try:
+                    Gio.Subprocess.new(command, Gio.SubprocessFlags.NONE)
+                except GLib.Error:
+                    mapped.launch_uris([url])
+            else:
+                mapped.launch_uris([url])
             self.close()
             return
 
@@ -439,16 +451,49 @@ def _profile_key(browser):
             heading=_("Always open with {}").format(browser.get_display_name()),
             body=url,
         )
+
+        selected_profile = self.selected_profiles.get(browser.get_id())
+        profile_switch = None
+        if selected_profile is not None:
+            profile_switch = Gtk.Switch()
+            profile_switch.set_valign(Gtk.Align.CENTER)
+            profile_label = Gtk.Label.new(
+                _("Remember profile: {}").format(selected_profile.name)
+            )
+            profile_label.set_xalign(0)
+            profile_label.set_hexpand(True)
+            profile_box = Gtk.Box(spacing=6)
+            profile_box.append(profile_label)
+            profile_box.append(profile_switch)
+            options_box.append(profile_box)
+
+        private_switch = Gtk.Switch()
+        private_switch.set_valign(Gtk.Align.CENTER)
+        private_switch.set_active(self.incognito)
+        private_label = Gtk.Label.new(_("Open in private window"))
+        private_label.set_xalign(0)
+        private_label.set_hexpand(True)
+        private_box = Gtk.Box(spacing=6)
+        private_box.append(private_label)
+        private_box.append(private_switch)
+        options_box.append(private_box)
+
         dialog.set_extra_child(options_box)
         dialog.add_response("cancel", _("Cancel"))
         dialog.add_response("save", _("Save Rule and Open"))
         dialog.set_response_appearance("save", Adw.ResponseAppearance.SUGGESTED)
         dialog.set_default_response("save")
         dialog.set_close_response("cancel")
-        dialog.connect("response", self.on_rule_response, app, browser, radios, index)
+        dialog.connect(
+            "response", self.on_rule_response,
+            app, browser, radios, index, profile_switch, private_switch,
+        )
         return dialog
 
-    def on_rule_response(self, dialog, response, app, browser, radios, index):
+    def on_rule_response(
+        self, dialog, response, app, browser, radios, index,
+        profile_switch, private_switch,
+    ):
         if response != "save":
             return
         prefix = None
@@ -458,10 +503,21 @@ def _profile_key(browser):
                 break
         if prefix is None:
             return
-        app.browser_mappings.set_browser(prefix, browser.get_id())
-        self.toast_overlay.add_toast(
-            Adw.Toast(title=_("Rule saved: {}").format(prefix))
+        remember_profile = (
+            profile_switch is not None and profile_switch.get_active()
         )
+        use_private = private_switch.get_active()
+        app.browser_mappings.set_browser(prefix, browser.get_id())
+        selected_profile = self.selected_profiles.get(browser.get_id())
+        profile_id = profile_identifier(
+            _profile_key(browser), selected_profile
+        ) if (remember_profile and selected_profile is not None) else None
+        app.browser_mappings.set_options(prefix, profile_id, use_private)
+        if use_private:
+            self.incognito = True
+            self.incognito_button.set_active(True)
+        toast = Adw.Toast(title=_("Rule saved: {}").format(prefix))
+        self.toast_overlay.add_toast(toast)
         self.launch_browser(index, app)
 
     def launch_browser(self, index, app):

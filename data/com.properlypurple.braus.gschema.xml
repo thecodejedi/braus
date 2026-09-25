@@ -11,5 +11,10 @@
 			<summary>UrlMappings</summary>
 			<description>URLs that are automatically opened in a default browser</description>
 		</key>
+		<key name="rule-options" type="a(sssa(ss))">
+			<default>[]</default>
+			<summary>RuleOptions</summary>
+			<description>Per-rule launch options: prefix, profile name, private flag, extra arguments</description>
+		</key>
 	</schema>
 </schemalist>

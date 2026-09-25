@@ -74,6 +74,33 @@ class LaunchArgsTests(unittest.TestCase):
         )
 
 
+class ProfileIdentifierTests(unittest.TestCase):
+    def test_none_is_none(self):
+        self.assertIsNone(
+            browser_profiles.profile_identifier("firefox.desktop", None)
+        )
+
+    def test_string_passes_through(self):
+        self.assertEqual(
+            browser_profiles.profile_identifier("firefox.desktop", "work"),
+            "work",
+        )
+
+    def test_chromium_uses_directory(self):
+        profile = browser_profiles.BrowserProfile(name="Work", directory="Profile 1")
+        self.assertEqual(
+            browser_profiles.profile_identifier("google-chrome.desktop", profile),
+            "Profile 1",
+        )
+
+    def test_firefox_uses_name(self):
+        profile = browser_profiles.BrowserProfile(name="work", directory="xxxx.work")
+        self.assertEqual(
+            browser_profiles.profile_identifier("firefox.desktop", profile),
+            "work",
+        )
+
+
 class BuildCommandTests(unittest.TestCase):
     def test_field_codes_replaced(self):
         command = browser_profiles.build_command(

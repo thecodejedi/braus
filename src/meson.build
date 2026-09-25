@@ -38,4 +38,10 @@ test('browser-profiles',
   suite: 'unit',
 )
 
+test('browser-mappings',
+  find_program('python3', required: true),
+  args: files('../tests/test_browser_mappings.py'),
+  suite: 'unit',
+)
+
 install_data(braus_sources, install_dir: moduledir)
