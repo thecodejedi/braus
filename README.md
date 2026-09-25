@@ -32,7 +32,10 @@ you a quick picker with every installed browser whenever a link is clicked:
   key, `1`–`9` then `0` for the 10th) and the link opens there.
 - **Automatic rules** — map URLs to browsers once
   (`braus --set`) and those links skip the picker entirely. Work links in
-  your work browser, videos in your media browser.
+  your work browser, videos in your media browser. You can also create a
+  rule right from the picker: click the bookmark-style icon on a browser
+  card and choose whether the rule applies to the exact URL, the path, or
+  the whole domain.
 - **One keystroke** — Braus is built for muscle memory: open, tap a number,
   done. `Escape` dismisses without launching anything; `Enter` opens the
   first browser.

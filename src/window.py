@@ -25,6 +25,9 @@ gi.require_version('Adw', '1')
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 
+from braus.url_scopes import SCOPES, SCOPE_DOMAIN, scoped_url  # noqa: E402
+
+
 class BrausWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'BrausWindow'
 
@@ -209,8 +212,22 @@ class BrausWindow(Adw.ApplicationWindow):
         )
         button.connect("clicked", self.on_browser_clicked, index, app)
 
+        overlay = Gtk.Overlay()
+        overlay.set_child(button)
+
+        rule_button = Gtk.Button()
+        rule_button.set_icon_name("emblem-default-symbolic")
+        rule_button.add_css_class("flat")
+        rule_button.set_valign(Gtk.Align.START)
+        rule_button.set_halign(Gtk.Align.END)
+        rule_button.set_tooltip_text(
+            _("Always open with {}").format(browser.get_display_name())
+        )
+        rule_button.connect("clicked", self.on_rule_clicked, index, app)
+        overlay.add_overlay(rule_button)
+
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        card.append(button)
+        card.append(overlay)
         if index < 10:
             hotkey_name = str((index + 1) % 10)
             hotkey_label = Gtk.Label(label=hotkey_name)
@@ -253,6 +270,80 @@ class BrausWindow(Adw.ApplicationWindow):
             self.launch_browser(0, app)
 
     def on_browser_clicked(self, button, index, app):
+        self.launch_browser(index, app)
+
+    def on_rule_clicked(self, button, index, app):
+        url = self.entry.get_text().strip()
+        if not url:
+            self.toast_overlay.add_toast(Adw.Toast(title=_("Enter a URL first")))
+            return
+        browser = self.browsers[index]
+        self.create_rule_dialog(app, browser, url, index).present(self)
+
+    def create_rule_dialog(self, app, browser, url, index):
+        scope_names = {
+            "url": _("Only this URL"),
+            "path": _("This path"),
+            "domain": _("This domain"),
+        }
+        options = []
+        seen = set()
+        for scope in SCOPES:
+            prefix = scoped_url(url, scope)
+            if prefix in seen:
+                continue
+            seen.add(prefix)
+            options.append((scope, prefix))
+
+        radios = {}
+        group = None
+        options_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        for scope, prefix in options:
+            radio = Gtk.CheckButton()
+            if group is not None:
+                radio.set_group(group)
+            group = radio
+            radio_label = Gtk.Label.new(scope_names[scope])
+            radio_label.set_xalign(0)
+            prefix_label = Gtk.Label.new(prefix)
+            prefix_label.set_xalign(0)
+            prefix_label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+            prefix_label.add_css_class("dim-label")
+            radio_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            radio_box.append(radio_label)
+            radio_box.append(prefix_label)
+            radio.set_child(radio_box)
+            radio.set_active(scope == SCOPE_DOMAIN or len(options) == 1)
+            options_box.append(radio)
+            radios[scope] = (radio, prefix)
+
+        dialog = Adw.AlertDialog(
+            heading=_("Always open with {}").format(browser.get_display_name()),
+            body=url,
+        )
+        dialog.set_extra_child(options_box)
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("save", _("Save Rule and Open"))
+        dialog.set_response_appearance("save", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("save")
+        dialog.set_close_response("cancel")
+        dialog.connect("response", self.on_rule_response, app, browser, radios, index)
+        return dialog
+
+    def on_rule_response(self, dialog, response, app, browser, radios, index):
+        if response != "save":
+            return
+        prefix = None
+        for radio, candidate in radios.values():
+            if radio.get_active():
+                prefix = candidate
+                break
+        if prefix is None:
+            return
+        app.browser_mappings.set_browser(prefix, browser.get_id())
+        self.toast_overlay.add_toast(
+            Adw.Toast(title=_("Rule saved: {}").format(prefix))
+        )
         self.launch_browser(index, app)
 
     def launch_browser(self, index, app):

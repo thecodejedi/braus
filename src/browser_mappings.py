@@ -19,8 +19,9 @@ class BrowserMappings:
         return [list(mapping) for mapping in self.settings.get_value("url-mapping")]
 
     def determine_browser(self, url: str, browsers):
+        url = url.lower()
         for prefix, browser_id in self.load():
-            if not url.startswith(prefix):
+            if not url.startswith(prefix.lower()):
                 continue
             for browser in browsers:
                 if browser.get_id() == browser_id:
