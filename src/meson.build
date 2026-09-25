@@ -22,6 +22,13 @@ braus_sources = [
   'main.py',
   'window.py',
   'browser_mappings.py',
+  'url_scopes.py',
 ]
+
+test('url-scopes',
+  find_program('python3', required: true),
+  args: files('../tests/test_url_scopes.py'),
+  suite: 'unit',
+)
 
 install_data(braus_sources, install_dir: moduledir)
